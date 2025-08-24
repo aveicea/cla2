@@ -2136,19 +2136,13 @@ function applyRoundedCorners(eventsInSlot) {
 }
 
 // 이벤트가 이틀에 걸치는지 확인하고 분할
-// splitCrossDayEvent 함수를 다음과 같이 수정
 function splitCrossDayEvent(event) {
   if (event.time === '종일') return [event];
   
   const startHour = getEventHour(event.startTime);
-  const endHour = getEventHour(event.endTime);
   
-  // 삭제: 6시 이후 시작 이벤트를 당일 처리하는 로직 제거
-  // if (startHour >= SLOT_START_HOUR) {
-  //   return [event];
-  // }
-  
-  // 수정: 모든 이벤트를 그대로 반환 (날짜 변환 없이)
+  // 0-5시 이벤트는 전날 표시용으로 처리하지 않음
+  // 모든 시간 이벤트를 해당 날짜에 그대로 표시
   return [event];
 }
 
