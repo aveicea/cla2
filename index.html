@@ -1491,14 +1491,13 @@ function parseIcalData(icalText) {
             break;
 
             // parseIcalData 함수에서 EXDATE 처리 추가
-          case 'EXDATE':
-            if (!currentEvent.exdate) currentEvent.exdate = [];
-            currentEvent.exdate.push(parseIcalDate(value));
-            if (parsedExDate) {
-                  // 날짜 문자열만 저장 (시간 제외)
-                  currentEvent.exdate.push(parsedExDate.date);
+            case 'EXDATE':
+              if (!currentEvent.exdate) currentEvent.exdate = [];
+              const parsed = parseIcalDate(value);
+              if (parsed && parsed.date) {
+                  currentEvent.exdate.push(parsed.date);
               }
-            break;
+              break;
 
             // parseIcalData에서 RECURRENCE-ID 처리 추가
           case 'RECURRENCE-ID':
