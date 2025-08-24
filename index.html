@@ -2131,6 +2131,7 @@ function applyRoundedCorners(eventsInSlot) {
 }
 
 // 이벤트가 이틀에 걸치는지 확인하고 분할
+// splitCrossDayEvent 함수를 다음과 같이 수정
 function splitCrossDayEvent(event) {
   if (event.time === '종일') return [event];
   
@@ -2139,11 +2140,13 @@ function splitCrossDayEvent(event) {
   const startMinute = getEventMinute(event.startTime);
   const endMinute = getEventMinute(event.endTime);
   
-  const startPosition = getExactSlotPosition(startHour, startMinute);
-  const endPosition = getExactSlotPosition(endHour, endMinute);
+  // 시작 시간이 종료 시간보다 늦은 경우만 이틀 걸친 이벤트로 판단
+  // (예: 23:00 시작 - 02:00 종료)
+  const crossesDay = startHour > endHour || 
+    (startHour === endHour && startMinute > endMinute);
   
-  // 이틀에 걸치지 않는 경우
-  if (startPosition < endPosition) {
+  // 이틀에 걸치지 않는 경우 - 그대로 반환
+  if (!crossesDay) {
     return [event];
   }
   
@@ -2160,7 +2163,7 @@ function splitCrossDayEvent(event) {
     });
   }
   
-  // 둘째 날 부분 (6:00 ~ 종료시간)
+  // 둘째 날 부분 (6:00 ~ 종료시간)  
   if (endHour < SLOT_START_HOUR) {
     events.push({
       ...event,
