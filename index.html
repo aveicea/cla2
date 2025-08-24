@@ -2724,7 +2724,7 @@ function renderDayView() {
       }
     });
   });
-
+  
   // 다음날 새벽 이벤트 처리
   const nextDate = new Date(currentDate);
   nextDate.setDate(currentDate.getDate() + 1);
@@ -2747,27 +2747,27 @@ function renderDayView() {
         const endHour = getEventHour(splitEvent.endTime);
         
         if (startHour < SLOT_START_HOUR || endHour <= SLOT_START_HOUR) {
-          const startMinute = getEventMinute(splitEvent.startTime);
-          const endMinute = getEventMinute(splitEvent.endTime);
-          
-          const startPosition = getExactSlotPosition(startHour, startMinute);
-          const endPosition = getExactSlotPosition(endHour, endMinute);
-          const startSlot = Math.floor(startPosition);
-          
-          const currentEventIndex = eventCounts[startSlot] || 0;
-          eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
-          
-          const eventDiv = document.createElement('div');
-          eventDiv.className = 'time-event';
-          eventDiv.style.backgroundColor = event.color;
-          eventDiv.style.color = '#333';
-          // ... 나머지 스타일 설정
-          
-          if (dayCells[startSlot]) {
-            dayCells[startSlot].appendChild(eventDiv);
-            slotEventDivs[startSlot].push(eventDiv);
-          }
+        const startMinute = getEventMinute(splitEvent.startTime);
+        const endMinute = getEventMinute(splitEvent.endTime);
+        
+        const startPosition = getExactSlotPosition(startHour, startMinute);
+        const endPosition = getExactSlotPosition(endHour, endMinute);
+        const startSlot = Math.floor(startPosition);
+        
+        const currentEventIndex = eventCounts[startSlot] || 0;
+        eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
+        
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'time-event';
+        eventDiv.style.backgroundColor = event.color;
+        eventDiv.style.color = '#333';
+        // ... 나머지 스타일 설정
+        
+        if (dayCells[startSlot]) {
+          dayCells[startSlot].appendChild(eventDiv);
+          slotEventDivs[startSlot].push(eventDiv);
         }
+      }
       }
     });
   });
