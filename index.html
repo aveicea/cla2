@@ -1757,8 +1757,7 @@ function parseIcalDate(dateString) {
       const hour = parseInt(dateString.substring(9, 11));
       const minute = parseInt(dateString.substring(11, 13));
       
-      let date = new Date(year, month - 1, day, hour, minute);
-      
+      let date;
       // UTC 시간인 경우 (Z로 끝남) 로컬 시간으로 변환
       if (dateString.endsWith('Z')) {
         date = new Date(Date.UTC(year, month - 1, day, hour, minute));
@@ -1766,10 +1765,20 @@ function parseIcalDate(dateString) {
         date = new Date(year, month - 1, day, hour, minute);
       }
       
-      // parseIcalDate 함수에서 날짜 반환 부분
+      // 로컬 시간 기준으로 날짜와 시간 추출
+      const localHour = date.getHours();
+      let eventDate = date.toLocaleDateString('en-CA'); // YYYY-MM-DD 형식
+      
+      // 0-5시 이벤트는 전날 날짜로 설정
+      if (localHour >= 0 && localHour < 6) {
+        const prevDay = new Date(date);
+        prevDay.setDate(prevDay.getDate() - 1);
+        eventDate = prevDay.toLocaleDateString('en-CA');
+      }
+      
       return {
-          date: date.toLocaleDateString('en-CA'), // 'YYYY-MM-DD' 형식, 로컬 날짜 사용
-          time: date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+        date: eventDate,
+        time: date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
       };
     }
   } catch (e) {
@@ -2671,11 +2680,6 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
-  
-  // 디버그용 로그 추가
-  const targetDate = date.toISOString().split('T')[0];
-  console.log('=== 날짜 검색 ===');
-  console.log('찾는 날짜:', targetDate);
 
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
@@ -2685,22 +2689,9 @@ function getAllEventsForDate(date) {
     }
 
     const events = calendar.events.filter(event => {
-      // 디버그용 - 6-9시 이벤트만 로그
-      if (event.startTime && event.startTime.startsWith('06') || 
-          event.startTime && event.startTime.startsWith('07') || 
-          event.startTime && event.startTime.startsWith('08')) {
-        console.log('6-9시 이벤트:', {
-          title: event.title,
-          eventDate: event.date,
-          targetDate: targetDate,
-          match: event.date === targetDate,
-          startTime: event.startTime
-        });
-      }
-      
-      return event.date === targetDate;
+      // 문자열 비교로 변경하여 시간대 문제 방지
+      return event.date === date.toISOString().split('T')[0];
     });
-    
     events.forEach(event => {
       allEvents.push({
         ...event,
@@ -2710,7 +2701,6 @@ function getAllEventsForDate(date) {
     });
   });
   
-  console.log('총 찾은 이벤트:', allEvents.length);
   return allEvents;
 
     // 함수 마지막에 추가
