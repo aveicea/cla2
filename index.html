@@ -1424,10 +1424,10 @@ function parseIcalData(icalText) {
           startTime: currentEvent.startTime || currentEvent.time || '종일',
           endTime: currentEvent.endTime || currentEvent.time || '종일',
           description: currentEvent.description || '',
-          location: currentEvent.location || '', // 이 줄 추가
+          location: currentEvent.location || '',
           rrule: currentEvent.rrule,
-          exdate: currentEvent.exdate 
-        };
+          exdate: currentEvent.exdate || []  // 빈 배열을 기본값으로
+      };
         
         // 반복 일정인 경우 - 여기가 핵심!
         if (currentEvent.rrule) {
@@ -1539,17 +1539,19 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
    addDebugLog(`RRULE 분석 - FREQ: ${rules.FREQ}, COUNT: ${rules.COUNT}, UNTIL: ${rules.UNTIL}, INTERVAL: ${rules.INTERVAL}`);
    
    // EXDATE 처리
-   const excludedDates = new Set();
-   if (event.exdate) {
-       const exdates = Array.isArray(event.exdate) ? event.exdate : [event.exdate];
-       exdates.forEach(exdate => {
-           const parsed = parseIcalDate(exdate);
-           if (parsed && parsed.date) {
-               excludedDates.add(parsed.date);
-               addDebugLog(`EXDATE 추가: ${parsed.date}`);
-           }
-       });
-   }
+    // EXDATE 처리
+    const excludedDates = new Set();
+    if (event.exdate && Array.isArray(event.exdate)) {  // 배열인지 확인
+        event.exdate.forEach(exdate => {
+            if (typeof exdate === 'string') {  // 문자열인지 확인
+                const parsed = parseIcalDate(exdate);
+                if (parsed && parsed.date) {
+                    excludedDates.add(parsed.date);
+                    addDebugLog(`EXDATE 추가: ${parsed.date}`);
+                }
+            }
+        });
+    }
    
    let current = new Date(eventStart.getTime());
    const maxOccurrences = rules.COUNT ? parseInt(rules.COUNT) : 100;
