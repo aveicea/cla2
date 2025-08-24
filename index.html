@@ -2671,6 +2671,11 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
+  
+  // 디버그용 로그 추가
+  const targetDate = date.toISOString().split('T')[0];
+  console.log('=== 날짜 검색 ===');
+  console.log('찾는 날짜:', targetDate);
 
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
@@ -2680,9 +2685,22 @@ function getAllEventsForDate(date) {
     }
 
     const events = calendar.events.filter(event => {
-      // 문자열 비교로 변경하여 시간대 문제 방지
-      return event.date === date.toISOString().split('T')[0];
+      // 디버그용 - 6-9시 이벤트만 로그
+      if (event.startTime && event.startTime.startsWith('06') || 
+          event.startTime && event.startTime.startsWith('07') || 
+          event.startTime && event.startTime.startsWith('08')) {
+        console.log('6-9시 이벤트:', {
+          title: event.title,
+          eventDate: event.date,
+          targetDate: targetDate,
+          match: event.date === targetDate,
+          startTime: event.startTime
+        });
+      }
+      
+      return event.date === targetDate;
     });
+    
     events.forEach(event => {
       allEvents.push({
         ...event,
@@ -2692,6 +2710,7 @@ function getAllEventsForDate(date) {
     });
   });
   
+  console.log('총 찾은 이벤트:', allEvents.length);
   return allEvents;
 
     // 함수 마지막에 추가
