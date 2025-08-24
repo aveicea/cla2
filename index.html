@@ -1201,8 +1201,6 @@ async function loadCalendarEvents(calendar) {
 async function loadIcalEvents(calendar) {
   // 더 안정적인 프록시 서비스들로 업데이트
   const proxies = [
-    `https://api.allorigins.win/get?url=${encodeURIComponent(calendar.url)}`,
-    `https://cors-anywhere.herokuapp.com/${calendar.url}`,
     `https://corsproxy.io/?${encodeURIComponent(calendar.url)}`,
     // 새로운 프록시 추가
     `https://proxy.cors.sh/${calendar.url}`,
