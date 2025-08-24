@@ -1394,138 +1394,127 @@ async function loadApiEvents(calendar) {
 
 // iCal 데이터 파싱 함수
 function parseIcalData(icalText) {
- const events = [];
- const exceptionEvents = new Map(); // 예외 이벤트를 UID별로 저장
- const lines = icalText.split(/\r?\n/);
- let currentEvent = null;
- 
- addDebugLog(`iCal 파싱 시작: ${lines.length}줄`);
- 
- // 현재 뷰 범위 계산 (반복 일정 확장용)
- const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
- const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
- 
- for (let i = 0; i < lines.length; i++) {
-   let line = lines[i].trim();
-   
-   // 멀티라인 처리
-   while (i + 1 < lines.length && lines[i + 1].match(/^\s/)) {
-     i++;
-     line += lines[i].trim();
-   }
-   
-   if (line === 'BEGIN:VEVENT') {
-     currentEvent = {};
-   } 
-   else if (line === 'END:VEVENT' && currentEvent) {
-     if (currentEvent.summary && currentEvent.dtstart) {
-       const baseEvent = {
-         id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
-         title: currentEvent.summary,
-         date: currentEvent.date,
-         start: currentEvent.date + 'T' + (currentEvent.startTime === '종일' ? '00:00:00' : currentEvent.startTime + ':00'),
-         end: currentEvent.date + 'T' + (currentEvent.endTime === '종일' ? '23:59:59' : currentEvent.endTime + ':00'),
-         time: currentEvent.time || '종일',
-         startTime: currentEvent.startTime || currentEvent.time || '종일',
-         endTime: currentEvent.endTime || currentEvent.time || '종일',
-         description: currentEvent.description || '',
-         location: currentEvent.location || '',
-         rrule: currentEvent.rrule,
-         exdate: currentEvent.exdate || null,
-         recurrenceId: currentEvent.recurrenceId,
-         isException: currentEvent.isException
-       };
-       
-       // 예외 이벤트 처리
-       if (currentEvent.recurrenceId && currentEvent.uid) {
-         const exceptionKey = `${currentEvent.uid}_${currentEvent.recurrenceId.date}`;
-         exceptionEvents.set(exceptionKey, baseEvent);
-       }
-       // 반복 일정 처리
-       else if (currentEvent.rrule) {
-         addDebugLog(`반복 일정 발견: ${baseEvent.title}, RRULE: ${currentEvent.rrule}`);
-         
-         // 이 반복 일정의 예외 이벤트들만 필터링
-         const thisEventExceptions = new Map();
-         exceptionEvents.forEach((exc, key) => {
-           if (key.startsWith(currentEvent.uid + '_')) {
-             thisEventExceptions.set(key, exc);
-           }
-         });
-         
-         const expandedEvents = expandRecurringEventWithExceptions(
-           baseEvent, 
-           viewStart, 
-           viewEnd, 
-           thisEventExceptions
-         );
-         
-         events.push(...expandedEvents);
-         addDebugLog(`반복 일정 확장 완료: ${expandedEvents.length}개 인스턴스`);
-       }
-       // 일반 단일 이벤트 (예외가 아닌 경우만)
-       else if (!currentEvent.recurrenceId) {
-         events.push(baseEvent);
-       }
-     }
-     currentEvent = null;
-   }
-   else if (currentEvent) {
-     const colonIndex = line.indexOf(':');
-     if (colonIndex > 0) {
-       const key = line.substring(0, colonIndex).split(';')[0];
-       const value = line.substring(colonIndex + 1);
-       
-       switch (key) {
-         case 'UID':
-           currentEvent.uid = value;
-           break;
-         case 'SUMMARY':
-           currentEvent.summary = decodeIcalText(value);
-           break;
-         case 'DESCRIPTION':
-           currentEvent.description = decodeIcalText(value);
-           break;
-         case 'DTSTART':
-           const startDate = parseIcalDate(value);
-           if (startDate) {
-             currentEvent.dtstart = startDate.date;
-             currentEvent.date = startDate.date;
-             currentEvent.time = startDate.time;
-             currentEvent.startTime = startDate.time;
-           }
-           break;
-         case 'DTEND':
-           const endDate = parseIcalDate(value);
-           if (endDate) {
-             currentEvent.endTime = endDate.time;
-           }
-           break;
-         case 'RRULE':
-           currentEvent.rrule = value;
-           addDebugLog(`RRULE 파싱됨: ${value}`);
-           break;
-         case 'EXDATE':
-           if (!currentEvent.exdate) currentEvent.exdate = [];
-           const parsed = parseIcalDate(value);
-           if (parsed && parsed.date) {
-             currentEvent.exdate.push(parsed.date);
-           }
-           break;
-         case 'RECURRENCE-ID':
-           currentEvent.recurrenceId = parseIcalDate(value);
-           currentEvent.isException = true;
-           break;
-         case 'LOCATION':
-           currentEvent.location = decodeIcalText(value);
-           break;
-       }
-     }
-   }
- }
- 
- addDebugLog(`iCal 파싱 완료: ${events.length}개 이벤트 추출`);
- return events;
+  const events = [];
+  const lines = icalText.split(/\r?\n/);
+  let currentEvent = null;
+  
+  addDebugLog(`iCal 파싱 시작: ${lines.length}줄`);
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    // 멀티라인 처리
+    while (i + 1 < lines.length && lines[i + 1].match(/^\s/)) {
+      i++;
+      line += lines[i].trim();
+    }
+    
+    if (line === 'BEGIN:VEVENT') {
+      currentEvent = {};
+    } 
+    else if (line === 'END:VEVENT' && currentEvent) {
+      if (currentEvent.summary && currentEvent.dtstart) {
+        const baseEvent = {
+          id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
+          title: currentEvent.summary,
+          date: currentEvent.date,
+          start: currentEvent.date + 'T' + (currentEvent.startTime === '종일' ? '00:00:00' : currentEvent.startTime + ':00'),
+          end: currentEvent.date + 'T' + (currentEvent.endTime === '종일' ? '23:59:59' : currentEvent.endTime + ':00'),
+          time: currentEvent.time || '종일',
+          startTime: currentEvent.startTime || currentEvent.time || '종일',
+          endTime: currentEvent.endTime || currentEvent.time || '종일',
+          description: currentEvent.description || '',
+          location: currentEvent.location || '', // 이 줄 추가
+          exdate: currentEvent.exdate || null,  // null 기본값 추가
+          rrule: currentEvent.rrule
+        };
+        
+        // 반복 일정인 경우 - 여기가 핵심!
+        if (currentEvent.rrule) {
+          addDebugLog(`반복 일정 발견: ${baseEvent.title}, RRULE: ${currentEvent.rrule}`);
+          
+          // 현재 뷰 범위 계산
+          const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
+          const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
+          
+          // 기존 함수들 활용
+          const expandedEvents = expandRecurringEventWithExceptions(
+            baseEvent, 
+            viewStart, 
+            viewEnd, 
+            new Map() // 예외 이벤트는 일단 빈 Map
+          );
+          
+          events.push(...expandedEvents);
+          addDebugLog(`반복 일정 확장 완료: ${expandedEvents.length}개 인스턴스`);
+        } else {
+          // 일반 단일 이벤트
+          events.push(baseEvent);
+        }
+      }
+      currentEvent = null;
+    }
+    else if (currentEvent) {
+      const colonIndex = line.indexOf(':');
+      if (colonIndex > 0) {
+        const key = line.substring(0, colonIndex).split(';')[0];
+        const value = line.substring(colonIndex + 1);
+        
+        switch (key) {
+          case 'UID':
+            currentEvent.uid = value;
+            break;
+          case 'SUMMARY':
+            currentEvent.summary = decodeIcalText(value);
+            break;
+          case 'DESCRIPTION':
+            currentEvent.description = decodeIcalText(value);
+            break;
+          case 'DTSTART':
+            const startDate = parseIcalDate(value);
+            if (startDate) {
+              currentEvent.dtstart = startDate.date;
+              currentEvent.date = startDate.date;
+              currentEvent.time = startDate.time;
+              currentEvent.startTime = startDate.time;
+            }
+            break;
+          case 'DTEND':
+            const endDate = parseIcalDate(value);
+            if (endDate) {
+              currentEvent.endTime = endDate.time;
+            }
+            break;
+          case 'RRULE':
+            currentEvent.rrule = value;
+            addDebugLog(`RRULE 파싱됨: ${value}`);
+            break;
+
+            // parseIcalData 함수에서 EXDATE 처리 추가
+            case 'EXDATE':
+              if (!currentEvent.exdate) currentEvent.exdate = [];
+              const parsed = parseIcalDate(value);
+              if (parsed && parsed.date) {
+                  currentEvent.exdate.push(parsed.date);
+              }
+              break;
+
+            // parseIcalData에서 RECURRENCE-ID 처리 추가
+          case 'RECURRENCE-ID':
+              currentEvent.recurrenceId = parseIcalDate(value);
+              currentEvent.isException = true;
+              break;
+
+          case 'LOCATION':
+              currentEvent.location = decodeIcalText(value);
+              break;
+        }
+      }
+    }
+  }
+  
+  addDebugLog(`iCal 파싱 완료: ${events.length}개 이벤트 추출`);
+  return events;
 }
 
 
@@ -2164,86 +2153,36 @@ function splitCrossDayEvent(event) {
   const startMinute = getEventMinute(event.startTime);
   const endMinute = getEventMinute(event.endTime);
   
+  const startPosition = getExactSlotPosition(startHour, startMinute);
+  const endPosition = getExactSlotPosition(endHour, endMinute);
+  
+  // 이틀에 걸치지 않는 경우
+  if (startPosition < endPosition) {
+    return [event];
+  }
+  
+  // 이틀에 걸치는 경우 - 분할
   const events = [];
   
-  // 종료가 시작보다 작으면 자정을 넘는 것
-  const crossesMidnight = endHour < startHour || (endHour === startHour && endMinute < startMinute);
+  // 첫째 날 부분 (시작시간 ~ 5:59:59)
+  if (startHour >= SLOT_START_HOUR) {
+    events.push({
+      ...event,
+      endTime: '05:59',
+      title: event.title,
+      isFirstPart: true
+    });
+  }
   
-  if (!crossesMidnight) {
-    // 자정을 안 넘는 경우
-    if (startHour < 6 && endHour >= 6) {
-      // 6시를 걸치는 경우 (예: 3:00-8:00)
-      events.push({
-        ...event,
-        endTime: '05:59',
-        isFirstPart: true
-      });
-      events.push({
-        ...event,
-        startTime: '06:00',
-        isSecondPart: true
-      });
-    } else {
-      // 6시를 안 걸치면 그대로
-      events.push(event);
-    }
-  } else {
-    // 자정을 넘는 경우
-    if (startHour >= 6) {
-      // 6시 이후 시작
-      if (endHour >= 6) {
-        // 예: 22:00-07:00 (자정과 6시 모두 넘음)
-        events.push({
-          ...event,
-          endTime: '23:59',
-          isFirstPart: true
-        });
-        events.push({
-          ...event,
-          startTime: '00:00',
-          endTime: '05:59',
-          isMiddlePart: true,
-          isNextDay: true
-        });
-        events.push({
-          ...event,
-          startTime: '06:00',
-          isLastPart: true,
-          isNextDay: true
-        });
-      } else {
-        // 예: 22:00-02:00 (자정만 넘음)
-        events.push({
-          ...event,
-          endTime: '23:59',
-          isFirstPart: true
-        });
-        events.push({
-          ...event,
-          startTime: '00:00',
-          isSecondPart: true,
-          isNextDay: true
-        });
-      }
-    } else {
-      // 0-6시 사이 시작
-      if (endHour >= 6) {
-        // 예: 02:00-08:00 (6시 걸침)
-        events.push({
-          ...event,
-          endTime: '05:59',
-          isFirstPart: true
-        });
-        events.push({
-          ...event,
-          startTime: '06:00',
-          isSecondPart: true
-        });
-      } else {
-        // 예: 02:00-04:00 (6시 안 걸침)
-        events.push(event);
-      }
-    }
+  // 둘째 날 부분 (6:00 ~ 종료시간)
+  if (endHour < SLOT_START_HOUR) {
+    events.push({
+      ...event,
+      startTime: '06:00',
+      title: event.title,
+      isSecondPart: true,
+      isNextDay: true
+    });
   }
   
   return events;
@@ -2468,79 +2407,71 @@ function renderWeekView() {
     const nextDate = new Date(date);
     nextDate.setDate(date.getDate() + 1);
     const nextDayEvents = getAllEventsForDate(nextDate);
-
-    nextDayEvents.forEach((event) => {
-    const splitEvents = splitCrossDayEvent(event);
     
-    splitEvents.forEach((splitEvent) => {
-      // isNextDay가 있는 부분이거나 0-6시 이벤트만 처리
-      if (!splitEvent.isNextDay) {
-        const startHour = getEventHour(event.startTime);
-        const endHour = getEventHour(event.endTime);
-        // 6시 이후 시작하고 6시 이후 끝나면 스킵
-        if (startHour >= SLOT_START_HOUR && endHour >= SLOT_START_HOUR) {
-          return;
-        }
-      }
+    nextDayEvents.forEach((event) => {
+      const splitEvents = splitCrossDayEvent(event);
       
-      if (splitEvent.time !== '종일') {
-        const startHour = getEventHour(splitEvent.startTime);
-        const endHour = getEventHour(splitEvent.endTime);
+      splitEvents.forEach((splitEvent) => {
+        if (!splitEvent.isSecondPart) return;
         
-        // 0-6시 사이의 이벤트만 처리
-        if (startHour < SLOT_START_HOUR || endHour <= SLOT_START_HOUR) {
-          const startMinute = getEventMinute(splitEvent.startTime);
-          const endMinute = getEventMinute(splitEvent.endTime);
+        if (splitEvent.time !== '종일') {
+          const startHour = getEventHour(splitEvent.startTime);
+          const endHour = getEventHour(splitEvent.endTime);
+          
+          if (startHour < SLOT_START_HOUR || endHour < SLOT_START_HOUR) {
+            const startMinute = getEventMinute(splitEvent.startTime);
+            const endMinute = getEventMinute(splitEvent.endTime);
 
-          const startPosition = getExactSlotPosition(startHour, startMinute);
-          const endPosition = getExactSlotPosition(endHour, endMinute);
-          const startSlot = Math.floor(startPosition);
-          
-          const currentEventIndex = eventCounts[startSlot] || 0;
-          eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
+            const startPosition = getExactSlotPosition(startHour, startMinute);
+            const endPosition = getExactSlotPosition(endHour, endMinute);
+            const startSlot = Math.floor(startPosition);
+            
+            const currentEventIndex = eventCounts[startSlot] || 0;
+            eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
 
-          const eventDiv = document.createElement('div');
-          eventDiv.className = 'time-event';
-          eventDiv.style.backgroundColor = event.color;
-          eventDiv.style.color = '#333';
-          eventDiv.style.padding = '2px 6px';
-          eventDiv.style.fontSize = '0.6em';
-          eventDiv.style.overflow = 'visible';
-          eventDiv.style.textOverflow = 'clip';
-          eventDiv.style.whiteSpace = 'normal';
-          eventDiv.style.position = 'absolute';
-          eventDiv.style.boxSizing = 'border-box';
-          eventDiv.style.zIndex = 100 + currentEventIndex;
-          eventDiv.style.wordWrap = 'break-word';
-          eventDiv.style.wordBreak = 'break-word';
-          eventDiv.style.lineHeight = '1.2';
-          eventDiv.style.minHeight = '20px';
-          
-          const cellHeight = 25;
-          const topOffset = (startPosition - startSlot) * cellHeight;
-          const height = (endPosition - startPosition) * cellHeight;
-          
-          eventDiv.style.top = `${topOffset}px`;
-          eventDiv.style.height = `${Math.max(height, 20)}px`;
-          
-          const totalEvents = Math.max(eventCounts[startSlot], 1);
-          const eventWidth = Math.floor(100 / totalEvents);
-          const leftPosition = currentEventIndex * eventWidth;
-          
-          eventDiv.style.left = `${leftPosition}%`;
-          eventDiv.style.width = `${eventWidth}%`;
-          
-          eventDiv.textContent = splitEvent.title;
-          eventDiv.title = `${event.title}\n시간: ${splitEvent.startTime} - ${splitEvent.endTime}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-          
-          if (dayCells[day][startSlot]) {
-            dayCells[day][startSlot].appendChild(eventDiv);
-            if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
-            slotEventDivs[startSlot].push(eventDiv);
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'time-event';
+            eventDiv.style.backgroundColor = event.color;
+            eventDiv.style.color = '#333';
+            eventDiv.style.padding = '2px 6px';
+            eventDiv.style.fontSize = '0.6em';
+            eventDiv.style.overflow = 'visible';
+            eventDiv.style.textOverflow = 'clip';
+            eventDiv.style.whiteSpace = 'normal';
+            eventDiv.style.position = 'absolute';
+            eventDiv.style.boxSizing = 'border-box';
+            eventDiv.style.zIndex = 100 + currentEventIndex;
+                    //추가
+            eventDiv.style.wordWrap = 'break-word';
+            eventDiv.style.wordBreak = 'break-word';
+            eventDiv.style.lineHeight = '1.2';
+            eventDiv.style.minHeight = '20px';     // 최소 높이 보장
+            
+            const containerHeight = calendarContent.clientHeight - 100; // 헤더 제외
+            const cellHeight = Math.max(25, containerHeight / (SLOT_COUNT + 1)); // 최소 25px, 최대 동적
+            const topOffset = (startPosition - startSlot) * cellHeight;
+            const height = (endPosition - startPosition) * cellHeight;
+            
+            eventDiv.style.top = `${topOffset}px`;
+            eventDiv.style.height = `${Math.max(height, 20)}px`;
+            
+            const totalEvents = Math.max(eventCounts[startSlot], 1);
+            const eventWidth = Math.floor(100 / totalEvents);
+            const leftPosition = currentEventIndex * eventWidth;
+            
+            eventDiv.style.left = `${leftPosition}%`;
+            eventDiv.style.width = `${eventWidth}%`;
+            
+            eventDiv.textContent = splitEvent.title;
+            eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
+            if (dayCells[day][startSlot]) {
+              dayCells[day][startSlot].appendChild(eventDiv);
+              if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
+              slotEventDivs[startSlot].push(eventDiv);
+            }
           }
         }
-      }
-    });
+      });
     });
   }
 
@@ -2721,53 +2652,6 @@ function renderDayView() {
           dayCells[startSlot].appendChild(eventDiv);
           slotEventDivs[startSlot].push(eventDiv);
         }
-      }
-    });
-  });
-  
-  // 다음날 새벽 이벤트 처리
-  const nextDate = new Date(currentDate);
-  nextDate.setDate(currentDate.getDate() + 1);
-  const nextDayEvents = getAllEventsForDate(nextDate);
-
-  nextDayEvents.forEach((event) => {
-    const splitEvents = splitCrossDayEvent(event);
-    
-    splitEvents.forEach((splitEvent) => {
-      if (!splitEvent.isNextDay) {
-        const startHour = getEventHour(event.startTime);
-        const endHour = getEventHour(event.endTime);
-        if (startHour >= SLOT_START_HOUR && endHour >= SLOT_START_HOUR) {
-          return;
-        }
-      }
-      
-      if (splitEvent.time !== '종일') {
-        const startHour = getEventHour(splitEvent.startTime);
-        const endHour = getEventHour(splitEvent.endTime);
-        
-        if (startHour < SLOT_START_HOUR || endHour <= SLOT_START_HOUR) {
-        const startMinute = getEventMinute(splitEvent.startTime);
-        const endMinute = getEventMinute(splitEvent.endTime);
-        
-        const startPosition = getExactSlotPosition(startHour, startMinute);
-        const endPosition = getExactSlotPosition(endHour, endMinute);
-        const startSlot = Math.floor(startPosition);
-        
-        const currentEventIndex = eventCounts[startSlot] || 0;
-        eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
-        
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'time-event';
-        eventDiv.style.backgroundColor = event.color;
-        eventDiv.style.color = '#333';
-        // ... 나머지 스타일 설정
-        
-        if (dayCells[startSlot]) {
-          dayCells[startSlot].appendChild(eventDiv);
-          slotEventDivs[startSlot].push(eventDiv);
-        }
-      }
       }
     });
   });
