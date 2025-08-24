@@ -1424,22 +1424,30 @@ function parseIcalData(icalText) {
           startTime: currentEvent.startTime || currentEvent.time || '종일',
           endTime: currentEvent.endTime || currentEvent.time || '종일',
           description: currentEvent.description || '',
-          location: currentEvent.location || '',
-          rrule: currentEvent.rrule,
-          exdates: currentEvent.exdates || []
+          location: currentEvent.location || '', // 이 줄 추가
+          rrule: currentEvent.rrule
         };
         
-        // 반복 일정인 경우
+        // 반복 일정인 경우 - 여기가 핵심!
         if (currentEvent.rrule) {
           addDebugLog(`반복 일정 발견: ${baseEvent.title}, RRULE: ${currentEvent.rrule}`);
           
+          // 현재 뷰 범위 계산
           const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
           const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
           
-          const expandedEvents = expandRecurringEvent(baseEvent, viewStart, viewEnd);
+          // 기존 함수들 활용
+          const expandedEvents = expandRecurringEventWithExceptions(
+            baseEvent, 
+            viewStart, 
+            viewEnd, 
+            new Map() // 예외 이벤트는 일단 빈 Map
+          );
+          
           events.push(...expandedEvents);
           addDebugLog(`반복 일정 확장 완료: ${expandedEvents.length}개 인스턴스`);
         } else {
+          // 일반 단일 이벤트
           events.push(baseEvent);
         }
       }
@@ -1478,17 +1486,24 @@ function parseIcalData(icalText) {
             break;
           case 'RRULE':
             currentEvent.rrule = value;
+            addDebugLog(`RRULE 파싱됨: ${value}`);
             break;
+
+            // parseIcalData 함수에서 EXDATE 처리 추가
           case 'EXDATE':
-            if (!currentEvent.exdates) currentEvent.exdates = [];
-            const exDate = parseIcalDate(value);
-            if (exDate) {
-              currentEvent.exdates.push(exDate.date);
-            }
+            if (!currentEvent.exdate) currentEvent.exdate = [];
+            currentEvent.exdate.push(parseIcalDate(value));
             break;
+
+            // parseIcalData에서 RECURRENCE-ID 처리 추가
+          case 'RECURRENCE-ID':
+              currentEvent.recurrenceId = parseIcalDate(value);
+              currentEvent.isException = true;
+              break;
+
           case 'LOCATION':
-            currentEvent.location = decodeIcalText(value);
-            break;
+              currentEvent.location = decodeIcalText(value);
+              break;
         }
       }
     }
@@ -1500,67 +1515,181 @@ function parseIcalData(icalText) {
 
 
 //반복일정확장함수
-function expandRecurringEvent(event, viewStart, viewEnd) {
-  const occurrences = [];
-  const eventStart = new Date(event.start);
-  const eventEnd = new Date(event.end);
-  const eventDuration = eventEnd - eventStart;
-  
-  // RRULE 파싱
-  const rrule = event.rrule.replace('RRULE:', '').trim();
-  const rules = {};
-  rrule.split(';').forEach(part => {
-    const [key, value] = part.split('=');
-    if (key && value) {
-      rules[key.trim()] = value.trim();
-    }
-  });
-  
-  // 제외 날짜 Set
-  const excludedDates = new Set(event.exdates || []);
-  
-  let current = new Date(eventStart.getTime());
-  const maxOccurrences = rules.COUNT ? parseInt(rules.COUNT) : 100;
-  let count = 0;
-  
-  while (current <= viewEnd && count < maxOccurrences) {
-    if (current >= viewStart) {
-      const currentDateStr = current.toISOString().split('T')[0];
-      
-      // EXDATE 체크
-      if (!excludedDates.has(currentDateStr)) {
-        occurrences.push({
-          ...event,
-          id: `${event.id}_${current.getTime()}`,
-          date: currentDateStr,
-          start: current.toISOString(),
-          end: new Date(current.getTime() + eventDuration).toISOString(),
-          isRecurring: true
-        });
-      } else {
-        addDebugLog(`제외된 날짜: ${event.title} on ${currentDateStr}`);
-      }
-    }
-    
-    // 다음 반복 날짜 계산
-    switch (rules.FREQ) {
-      case 'DAILY':
-        current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
-        break;
-      case 'WEEKLY':
-        current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
-        break;
-      case 'MONTHLY':
-        current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
-        break;
-      case 'YEARLY':
-        current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
-        break;
-    }
-    count++;
-  }
-  
-  return occurrences;
+function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
+   const occurrences = [];
+   const eventStart = new Date(event.start || event.date + 'T00:00:00');
+   const eventEnd = new Date(event.end || event.date + 'T23:59:59');
+   const eventDuration = eventEnd - eventStart;
+   
+   // RRULE 파싱
+   const rrule = event.rrule.replace('RRULE:', '').trim();
+   const rules = {};
+   rrule.split(';').forEach(part => {
+       const [key, value] = part.split('=');
+       if (key && value) {
+           rules[key.trim()] = value.trim();
+       }
+   });
+   
+   addDebugLog(`반복 일정 확장 시작: ${event.title}`);
+   addDebugLog(`RRULE 분석 - FREQ: ${rules.FREQ}, COUNT: ${rules.COUNT}, UNTIL: ${rules.UNTIL}, INTERVAL: ${rules.INTERVAL}`);
+   
+   // EXDATE 처리
+   const excludedDates = new Set();
+   if (event.exdate) {
+       const exdates = Array.isArray(event.exdate) ? event.exdate : [event.exdate];
+       exdates.forEach(exdate => {
+           const parsed = parseIcalDate(exdate);
+           if (parsed && parsed.date) {
+               excludedDates.add(parsed.date);
+               addDebugLog(`EXDATE 추가: ${parsed.date}`);
+           }
+       });
+   }
+   
+   let current = new Date(eventStart.getTime());
+   const maxOccurrences = rules.COUNT ? parseInt(rules.COUNT) : 100;
+   let count = 0;
+   
+   // 시작일이 뷰 범위보다 이전이면 뷰 시작 근처로 이동
+   while (current < viewStart && count < maxOccurrences) {
+       switch (rules.FREQ) {
+           case 'DAILY':
+               const dailyInterval = parseInt(rules.INTERVAL) || 1;
+               current.setDate(current.getDate() + dailyInterval);
+               break;
+           case 'WEEKLY':
+               const weekInterval = parseInt(rules.INTERVAL) || 1;
+               if (rules.BYDAY) {
+                   const dayMap = {'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6, 'SU': 0};
+                   const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
+                   
+                   let moved = false;
+                   for (let i = 1; i <= 7; i++) {
+                       const testDate = new Date(current.getTime());
+                       testDate.setDate(current.getDate() + i);
+                       if (targetDays.includes(testDate.getDay())) {
+                           current = testDate;
+                           moved = true;
+                           break;
+                       }
+                   }
+                   if (!moved) {
+                       current.setDate(current.getDate() + (7 * weekInterval));
+                   }
+               } else {
+                   current.setDate(current.getDate() + (7 * weekInterval));
+               }
+               break;
+           case 'MONTHLY':
+               const monthInterval = parseInt(rules.INTERVAL) || 1;
+               current.setMonth(current.getMonth() + monthInterval);
+               break;
+           case 'YEARLY':
+               const yearInterval = parseInt(rules.INTERVAL) || 1;
+               current.setFullYear(current.getFullYear() + yearInterval);
+               break;
+       }
+       count++;
+   }
+   
+   // 실제 반복 일정 생성
+   count = 0;
+   while (current <= viewEnd && count < maxOccurrences) {
+       if (current >= viewStart) {
+           const currentDateStr = current.toISOString().split('T')[0];
+           
+           // 제외된 날짜인지 확인
+           if (excludedDates.has(currentDateStr)) {
+               addDebugLog(`제외된 날짜 건너뜀: ${event.title} on ${currentDateStr}`);
+           } else {
+               const occurrenceStart = new Date(current.getTime());
+               const occurrenceEnd = new Date(current.getTime() + eventDuration);
+               
+               occurrences.push({
+                   ...event,
+                   id: `${event.id}_${current.getTime()}`,
+                   date: currentDateStr,
+                   start: occurrenceStart.toISOString(),
+                   end: occurrenceEnd.toISOString(),
+                   startTime: event.startTime,
+                   endTime: event.endTime,
+                   time: event.startTime,
+                   isRecurring: true,
+                   originalEventId: event.id
+               });
+               count++;
+           }
+       }
+       
+       // 다음 반복 날짜 계산
+       switch (rules.FREQ) {
+           case 'DAILY':
+               const dailyInterval = parseInt(rules.INTERVAL) || 1;
+               current.setDate(current.getDate() + dailyInterval);
+               break;
+           case 'WEEKLY':
+               const weekInterval = parseInt(rules.INTERVAL) || 1;
+               if (rules.BYDAY) {
+                   const dayMap = {'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6, 'SU': 0};
+                   const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
+                   
+                   let nextDate = null;
+                   for (let i = 1; i <= 7 * weekInterval; i++) {
+                       const testDate = new Date(current.getTime());
+                       testDate.setDate(current.getDate() + i);
+                       if (targetDays.includes(testDate.getDay()) && 
+                           (i > 7 * (weekInterval - 1))) {
+                           nextDate = testDate;
+                           break;
+                       }
+                   }
+                   if (nextDate) {
+                       current = nextDate;
+                   } else {
+                       current.setDate(current.getDate() + (7 * weekInterval));
+                   }
+               } else {
+                   current.setDate(current.getDate() + (7 * weekInterval));
+               }
+               break;
+           case 'MONTHLY':
+               const monthInterval = parseInt(rules.INTERVAL) || 1;
+               current.setMonth(current.getMonth() + monthInterval);
+               break;
+           case 'YEARLY':
+               const yearInterval = parseInt(rules.INTERVAL) || 1;
+               current.setFullYear(current.getFullYear() + yearInterval);
+               break;
+       }
+       
+       // UNTIL 처리
+       if (rules.UNTIL) {
+           let untilDate = null;
+           try {
+               const parsed = parseIcalDate(rules.UNTIL);
+               if (parsed) {
+                   untilDate = new Date(parsed.date + 'T23:59:59');
+               }
+           } catch (e) {
+               addDebugLog(`UNTIL 파싱 오류: ${e.message}`);
+           }
+           
+           if (untilDate && current > untilDate) {
+               addDebugLog(`UNTIL 날짜 도달: ${untilDate.toISOString()}`);
+               break;
+           }
+       }
+       
+       // COUNT 처리
+       if (rules.COUNT && count >= parseInt(rules.COUNT)) {
+           addDebugLog(`COUNT 제한 도달: ${count}`);
+           break;
+       }
+   }
+   
+   addDebugLog(`반복 일정 확장 완료: ${event.title}, ${occurrences.length}개 생성`);
+   return occurrences;
 }
 
 
