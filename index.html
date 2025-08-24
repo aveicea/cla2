@@ -2089,16 +2089,11 @@ function getDisplayHour(slotIndex) {
 
 // 실제 시간 -> 슬롯 인덱스 변환
 function getSlotIndex(hour) {
-  // 6시부터 23시까지는 0-17 슬롯
-  if (hour >= 6 && hour <= 23) {
-    return hour - 6;
+  if (hour >= SLOT_START_HOUR) {
+    return hour - SLOT_START_HOUR;  // 6-23시: 0-17
+  } else {
+    return hour + (24 - SLOT_START_HOUR);  // 0-5시: 18-23
   }
-  // 0시부터 5시까지는 18-23 슬롯 (다음날로 처리)
-  else if (hour >= 0 && hour <= 5) {
-    return hour + 18;
-  }
-  // 예외 처리
-  return 0;
 }
 
 // 시간을 정확한 슬롯 위치로 변환 (분 단위까지 고려)
@@ -2140,10 +2135,43 @@ function splitCrossDayEvent(event) {
   if (event.time === '종일') return [event];
   
   const startHour = getEventHour(event.startTime);
+  const endHour = getEventHour(event.endTime);
+  const startMinute = getEventMinute(event.startTime);
+  const endMinute = getEventMinute(event.endTime);
   
-  // 0-5시 이벤트는 전날 표시용으로 처리하지 않음
-  // 모든 시간 이벤트를 해당 날짜에 그대로 표시
-  return [event];
+  const startPosition = getExactSlotPosition(startHour, startMinute);
+  const endPosition = getExactSlotPosition(endHour, endMinute);
+  
+  // 이틀에 걸치지 않는 경우
+  if (startPosition < endPosition) {
+    return [event];
+  }
+  
+  // 이틀에 걸치는 경우 - 분할
+  const events = [];
+  
+  // 첫째 날 부분 (시작시간 ~ 5:59:59)
+  if (startHour >= SLOT_START_HOUR) {
+    events.push({
+      ...event,
+      endTime: '05:59',
+      title: event.title,
+      isFirstPart: true
+    });
+  }
+  
+  // 둘째 날 부분 (6:00 ~ 종료시간)
+  if (endHour < SLOT_START_HOUR) {
+    events.push({
+      ...event,
+      startTime: '06:00',
+      title: event.title,
+      isSecondPart: true,
+      isNextDay: true
+    });
+  }
+  
+  return events;
 }
 
 // 주간 뷰 렌더링 (24시간 버전)
@@ -2260,8 +2288,10 @@ function renderWeekView() {
     const slotEventDivs = Array(SLOT_COUNT).fill().map(() => []); // 각 슬롯별 이벤트 div 저장
     
     dayEvents.forEach((event) => {
-      if (event.time === '종일') {
-        const eventDiv = document.createElement('div');
+      const splitEvents = splitCrossDayEvent(event);
+      
+      splitEvents.forEach((splitEvent) => {
+        if (splitEvent.isNextDay) return;
         
         if (splitEvent.time === '종일') {
           const eventDiv = document.createElement('div');
@@ -2289,10 +2319,10 @@ function renderWeekView() {
           
           dayCells[day][0].appendChild(eventDiv);
         } else {
-          const startHour = getEventHour(event.startTime);
-          const endHour = getEventHour(event.endTime);
-          const startMinute = getEventMinute(event.startTime);
-          const endMinute = getEventMinute(event.endTime);
+          const startHour = getEventHour(splitEvent.startTime);
+          const endHour = getEventHour(splitEvent.endTime);
+          const startMinute = getEventMinute(splitEvent.startTime);
+          const endMinute = getEventMinute(splitEvent.endTime);
 
           const startPosition = getExactSlotPosition(startHour, startMinute);
           const endPosition = getExactSlotPosition(endHour, endMinute);
@@ -2349,7 +2379,7 @@ function renderWeekView() {
             slotEventDivs[startSlot].push(eventDiv);
           }
         }
-      }
+      });
     });
     
     // 각 슬롯의 이벤트들에 적절한 모서리 처리 적용
@@ -2524,8 +2554,10 @@ function renderDayView() {
   const slotEventDivs = Array(SLOT_COUNT).fill().map(() => []);
   
   dayEvents.forEach((event) => {
-    if (event.time === '종일') {
-      const eventDiv = document.createElement('div');
+    const splitEvents = splitCrossDayEvent(event);
+    
+    splitEvents.forEach((splitEvent) => {
+      if (splitEvent.isNextDay) return;
       
       if (splitEvent.time === '종일') {
         const eventDiv = document.createElement('div');
@@ -2553,10 +2585,10 @@ function renderDayView() {
         
         dayCells[0].appendChild(eventDiv);
       } else {
-        const startHour = getEventHour(event.startTime);
-        const endHour = getEventHour(event.endTime);
-        const startMinute = getEventMinute(event.startTime);
-        const endMinute = getEventMinute(event.endTime);
+        const startHour = getEventHour(splitEvent.startTime);
+        const endHour = getEventHour(splitEvent.endTime);
+        const startMinute = getEventMinute(splitEvent.startTime);
+        const endMinute = getEventMinute(splitEvent.endTime);
 
         const startPosition = getExactSlotPosition(startHour, startMinute);
         const endPosition = getExactSlotPosition(endHour, endMinute);
@@ -2606,9 +2638,9 @@ function renderDayView() {
           dayCells[startSlot].appendChild(eventDiv);
           slotEventDivs[startSlot].push(eventDiv);
         }
-        }
       }
     });
+  });
 
   // 각 슬롯의 이벤트들에 적절한 모서리 처리 적용
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
@@ -2638,12 +2670,7 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
-  
-  // 현재 날짜의 6시부터 다음날 5시까지의 범위 설정
-  const currentDate = new Date(date);
-  const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0, 0);
-  const dayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1, 5, 59, 59);
-  
+
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
 
@@ -2652,18 +2679,9 @@ function getAllEventsForDate(date) {
     }
 
     const events = calendar.events.filter(event => {
-      // 종일 이벤트는 날짜만 비교
-      if (event.time === '종일') {
-        return event.date === date.toISOString().split('T')[0];
-      }
-      
-      // 시간이 있는 이벤트는 6시~다음날5시 범위로 처리
-      const eventDate = new Date(event.date + 'T' + (event.startTime === '종일' ? '00:00:00' : event.startTime + ':00'));
-      
-      // 이벤트가 현재 날짜의 6시~다음날5시 범위에 포함되는지 확인
-      return eventDate >= dayStart && eventDate <= dayEnd;
+      // 문자열 비교로 변경하여 시간대 문제 방지
+      return event.date === date.toISOString().split('T')[0];
     });
-    
     events.forEach(event => {
       allEvents.push({
         ...event,
@@ -2672,17 +2690,19 @@ function getAllEventsForDate(date) {
       });
     });
   });
+  
+  return allEvents;
 
-  // 중복 제거
+    // 함수 마지막에 추가
   const uniqueEvents = [];
   const seenEvents = new Set();
 
   allEvents.forEach(event => {
-    const key = `${event.title}_${event.date}_${event.startTime}_${event.endTime}`;
-    if (!seenEvents.has(key)) {
-      seenEvents.add(key);
-      uniqueEvents.push(event);
-    }
+      const key = `${event.title}_${event.date}_${event.startTime}_${event.endTime}`;
+      if (!seenEvents.has(key)) {
+          seenEvents.add(key);
+          uniqueEvents.push(event);
+      }
   });
 
   return uniqueEvents;
