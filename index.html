@@ -2131,7 +2131,6 @@ function applyRoundedCorners(eventsInSlot) {
 }
 
 // 이벤트가 이틀에 걸치는지 확인하고 분할
-// splitCrossDayEvent 함수를 다음과 같이 수정
 function splitCrossDayEvent(event) {
   if (event.time === '종일') return [event];
   
@@ -2140,13 +2139,11 @@ function splitCrossDayEvent(event) {
   const startMinute = getEventMinute(event.startTime);
   const endMinute = getEventMinute(event.endTime);
   
-  // 시작 시간이 종료 시간보다 늦은 경우만 이틀 걸친 이벤트로 판단
-  // (예: 23:00 시작 - 02:00 종료)
-  const crossesDay = startHour > endHour || 
-    (startHour === endHour && startMinute > endMinute);
+  const startPosition = getExactSlotPosition(startHour, startMinute);
+  const endPosition = getExactSlotPosition(endHour, endMinute);
   
-  // 이틀에 걸치지 않는 경우 - 그대로 반환
-  if (!crossesDay) {
+  // 이틀에 걸치지 않는 경우
+  if (startPosition < endPosition) {
     return [event];
   }
   
@@ -2163,7 +2160,7 @@ function splitCrossDayEvent(event) {
     });
   }
   
-  // 둘째 날 부분 (6:00 ~ 종료시간)  
+  // 둘째 날 부분 (6:00 ~ 종료시간)
   if (endHour < SLOT_START_HOUR) {
     events.push({
       ...event,
@@ -2673,6 +2670,11 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
+  
+  // 디버그용 로그 추가
+  const targetDate = date.toISOString().split('T')[0];
+  console.log('=== 날짜 검색 ===');
+  console.log('찾는 날짜:', targetDate);
 
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
@@ -2682,9 +2684,22 @@ function getAllEventsForDate(date) {
     }
 
     const events = calendar.events.filter(event => {
-      // 문자열 비교로 변경하여 시간대 문제 방지
-      return event.date === date.toISOString().split('T')[0];
+      // 디버그용 - 6-9시 이벤트만 로그
+      if (event.startTime && event.startTime.startsWith('06') || 
+          event.startTime && event.startTime.startsWith('07') || 
+          event.startTime && event.startTime.startsWith('08')) {
+        console.log('6-9시 이벤트:', {
+          title: event.title,
+          eventDate: event.date,
+          targetDate: targetDate,
+          match: event.date === targetDate,
+          startTime: event.startTime
+        });
+      }
+      
+      return event.date === targetDate;
     });
+    
     events.forEach(event => {
       allEvents.push({
         ...event,
@@ -2694,7 +2709,9 @@ function getAllEventsForDate(date) {
     });
   });
   
+  console.log('총 찾은 이벤트:', allEvents.length);
   return allEvents;
+
 
     // 함수 마지막에 추가
   const uniqueEvents = [];
