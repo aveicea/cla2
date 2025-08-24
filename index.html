@@ -1425,6 +1425,7 @@ function parseIcalData(icalText) {
           endTime: currentEvent.endTime || currentEvent.time || '종일',
           description: currentEvent.description || '',
           location: currentEvent.location || '', // 이 줄 추가
+          exdate: currentEvent.exdate || null,  // null 기본값 추가
           rrule: currentEvent.rrule
         };
         
@@ -1493,6 +1494,10 @@ function parseIcalData(icalText) {
           case 'EXDATE':
             if (!currentEvent.exdate) currentEvent.exdate = [];
             currentEvent.exdate.push(parseIcalDate(value));
+            if (parsedExDate) {
+                  // 날짜 문자열만 저장 (시간 제외)
+                  currentEvent.exdate.push(parsedExDate.date);
+              }
             break;
 
             // parseIcalData에서 RECURRENCE-ID 처리 추가
@@ -1539,11 +1544,13 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
 
 
     // EXDATE 처리
+  // EXDATE 처리
     const excludedDates = new Set();
     if (event.exdate) {
         const exdates = Array.isArray(event.exdate) ? event.exdate : [event.exdate];
         exdates.forEach(exdate => {
-            const excludeDate = new Date(exdate);
+            // exdate가 이미 날짜 문자열 형식 (YYYY-MM-DD)
+            const excludeDate = new Date(exdate + 'T00:00:00');
             excludedDates.add(excludeDate.toDateString());
         });
     }
