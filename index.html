@@ -1426,7 +1426,6 @@ function parseIcalData(icalText) {
           description: currentEvent.description || '',
           location: currentEvent.location || '',
           rrule: currentEvent.rrule,
-          exdate: currentEvent.exdate ? [...currentEvent.exdate] : [] 
       };
 
       console.log('baseEvent created:', baseEvent);  // 디버그용
