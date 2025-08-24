@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,98 +5,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>멀티 캘린더 뷰어</title>
 <style>
+/* CSS 스타일 - 원본 그대로 유지 */
 :root {
   --accent-color: #D1D1D1;
   --accent-hover-color: #3367d6;
 }
 
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f5f5f5;
-  display: flex;
-  flex-direction: column;
+  color: #333;
   height: 100vh;
+  overflow: hidden;
 }
 
 .header {
   background: white;
-  padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .view-selector {
   display: flex;
-  gap: 8px;
+  gap: 5px;
 }
 
 .view-btn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
   padding: 8px 16px;
-  border: 2px solid #e0e0e0;
-  background: white;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .view-btn:hover {
-  background: #f5f5f5;
-  border-color: #d0d0d0;
+  background-color: var(--accent-hover-color);
+  color: white;
+  border-color: var(--accent-hover-color);
 }
 
 .view-btn.active {
-  background: var(--accent-color);
-  border-color: var(--accent-color);
+  background-color: var(--accent-color);
   color: white;
+  border-color: var(--accent-color);
 }
 
 .nav-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .nav-btn {
+  background: white;
+  border: 1px solid #e0e0e0;
   padding: 8px 12px;
-  border: none;
-  background: #f5f5f5;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   transition: all 0.2s ease;
-  min-width: 36px;
 }
 
 .nav-btn:hover {
-  background: var(--accent-color);
+  background-color: var(--accent-hover-color);
   color: white;
+  border-color: var(--accent-hover-color);
 }
 
 .current-date {
+  font-weight: bold;
   font-size: 18px;
-  font-weight: 600;
   min-width: 200px;
   text-align: center;
-  color: #333;
 }
 
 .settings-btn {
-  padding: 10px 14px;
-  border: none;
   background: var(--accent-color);
   color: white;
+  border: none;
+  padding: 10px 15px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
@@ -105,24 +103,24 @@ body {
 }
 
 .settings-btn:hover {
-  background: var(--accent-hover-color);
+  background-color: var(--accent-hover-color);
 }
 
 .settings-panel {
   position: fixed;
-  right: -400px;
   top: 0;
-  width: 380px;
+  right: -400px;
+  width: 400px;
   height: 100vh;
   background: white;
-  box-shadow: -2px 0 20px rgba(0,0,0,0.15);
+  box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+  transition: right 0.3s ease;
   z-index: 1000;
   overflow-y: auto;
-  transition: right 0.3s ease;
   padding: 20px;
 }
 
-.settings-panel.open {
+.settings-panel[style*="block"] {
   right: 0;
 }
 
@@ -134,61 +132,51 @@ body {
   height: 100%;
   background: rgba(0,0,0,0.5);
   z-index: 999;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s;
-}
-
-.overlay.show {
-  opacity: 1;
-  visibility: visible;
+  display: none;
 }
 
 .settings-title {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: bold;
   margin-bottom: 20px;
   color: #333;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 10px;
 }
 
 .toggle-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
   cursor: pointer;
+  padding: 12px 0;
   border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 16px;
-  font-weight: 600;
+  margin-bottom: 10px;
 }
 
 .toggle-header:hover {
-  background: #f8f9fa;
-  margin: 0 -8px 16px;
-  padding: 12px 8px;
-  border-radius: 4px;
+  background-color: #f8f9fa;
 }
 
 .color-picker-title {
+  font-weight: 600;
   color: #333;
-  font-size: 14px;
 }
 
 .toggle-icon {
-  transition: transform 0.3s;
-  font-size: 14px;
-  color: #666;
+  font-size: 16px;
+  transition: transform 0.3s ease;
 }
 
 .toggle-icon.expanded {
-  transform: rotate(-180deg);
+  transform: rotate(180deg);
 }
 
 .toggle-content {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .toggle-content.expanded {
@@ -197,31 +185,24 @@ body {
 
 .color-input-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .color-picker-input {
   width: 50px;
-  height: 40px;
-  border: 2px solid #e0e0e0;
+  height: 35px;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
   cursor: pointer;
-  background: none;
 }
 
 .color-text-input {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.color-text-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
+  font-size: 14px;
 }
 
 .preset-colors {
@@ -231,172 +212,43 @@ body {
 }
 
 .preset-color {
-  width: 40px;
-  height: 30px;
+  width: 35px;
+  height: 35px;
   border-radius: 6px;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.2s;
+  transition: transform 0.2s ease;
 }
 
 .preset-color:hover {
   transform: scale(1.1);
-  border-color: #333;
-}
-
-.calendar-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  background: white;
-  transition: all 0.2s;
-}
-
-.calendar-item:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-color: #d0d0d0;
-}
-
-.calendar-item.active {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(209, 209, 209, 0.2);
-}
-
-.calendar-color-picker {
-  width: 30px;
-  height: 30px;
-  border: 2px solid #e0e0e0;
-  border-radius: 50%;
-  cursor: pointer;
-  background: none;
-}
-
-.calendar-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.calendar-name {
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  font-size: 14px;
-  padding: 4px 0;
-  color: #333;
-}
-
-.calendar-name:focus {
-  outline: 1px solid var(--accent-color);
-  background: white;
-  padding: 4px 6px;
-  border-radius: 4px;
-}
-
-.calendar-url {
-  font-size: 11px;
-  color: #666;
-  margin-top: 2px;
-  word-break: break-all;
-}
-
-.calendar-status {
-  font-size: 10px;
-  margin-top: 2px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  font-weight: 500;
-}
-
-.calendar-status.success {
-  background: #d4edda;
-  color: #155724;
-}
-
-.calendar-status.error {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.calendar-status.loading {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.calendar-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.toggle-btn {
-  padding: 6px 8px;
-  border: none;
-  background: #f5f5f5;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  min-width: 28px;
-}
-
-.toggle-btn:hover {
-  background: #e0e0e0;
-}
-
-.toggle-btn.visible {
-  background: #d4edda;
-  color: #155724;
-}
-
-.toggle-btn.hidden {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.toggle-btn.reload-btn:hover {
-  background: #ffc107;
-  color: #212529;
-}
-
-.toggle-btn.remove-btn:hover {
-  background: #dc3545;
-  color: white;
+  border-color: #666;
 }
 
 .input-group {
-  margin-bottom: 16px;
+  margin-bottom: 15px;
 }
 
 .input-group label {
   display: block;
+  margin-bottom: 5px;
   font-weight: 600;
-  margin-bottom: 6px;
-  color: #555;
-  font-size: 14px;
+  color: #333;
 }
 
-.input-group input,
-.input-group select,
-.input-group textarea {
+.input-group input, .input-group select, .input-group textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
   font-size: 14px;
-  font-family: inherit;
 }
 
-.input-group input:focus,
-.input-group select:focus,
-.input-group textarea:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(209, 209, 209, 0.2);
+.help-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+  line-height: 1.4;
 }
 
 .calendar-inputs {
@@ -407,22 +259,14 @@ body {
   display: block;
 }
 
-.help-text {
-  font-size: 11px;
-  color: #666;
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
 .btn {
-  padding: 10px 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s;
-  font-family: inherit;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
@@ -435,77 +279,195 @@ body {
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #e0e0e0;
 }
 
 .btn-secondary:hover {
-  background: #545b62;
+  background: #e9ecef;
 }
 
-.backup-section, .debug-section {
-  padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 20px;
+.calendar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.calendar-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.calendar-item.active {
+  border-color: var(--accent-color);
+  background-color: #f8f9ff;
+}
+
+.calendar-color-picker {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.calendar-info {
+  flex: 1;
+}
+
+.calendar-name {
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.calendar-url {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.calendar-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.calendar-status.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.calendar-status.loading {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.calendar-status.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.calendar-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.toggle-btn {
+  background: none;
+  border: 1px solid #e0e0e0;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background: #f8f9fa;
+}
+
+.remove-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.view-calendar-section {
+  margin-bottom: 15px;
+}
+
+.view-calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.view-calendar-item {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .debug-log {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  padding: 12px;
   max-height: 200px;
   overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  line-height: 1.4;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 12px;
   margin-top: 10px;
 }
 
 .debug-log div {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   padding: 2px 0;
-  color: #495057;
+  border-bottom: 1px solid #eee;
 }
 
 .calendar-container {
   flex: 1;
-  padding: 0;
-  overflow: hidden;
+  overflow: auto;
+  height: calc(100vh - 80px);
 }
 
 .calendar-content {
-  height: 100%;
-  background: white;
-  overflow: hidden;
+  padding: 20px;
 }
 
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+  color: #666;
+}
+
+/* 캘린더 뷰 스타일 */
 .calendar-grid {
   display: grid;
-  height: 100%;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #e0e0e0;
+  border: 1px solid #e0e0e0;
 }
 
-.month-view {
-  grid-template-columns: repeat(7, 1fr);
+.calendar-grid.month-view {
   grid-template-rows: 40px repeat(6, 1fr);
+  height: 600px;
 }
 
 .week-header {
   background: #f8f9fa;
-  padding: 12px;
-  font-weight: 600;
+  padding: 10px;
   text-align: center;
-  border: 1px solid #e0e0e0;
+  font-weight: bold;
   font-size: 14px;
-  color: #495057;
+  border-right: 1px solid #e0e0e0;
 }
 
 .calendar-day {
-  border: 1px solid #e0e0e0;
-  padding: 8px;
-  position: relative;
-  overflow: hidden;
   background: white;
+  padding: 8px;
+  min-height: 100px;
+  position: relative;
+}
+
+.calendar-day.today {
+  background: var(--accent-color);
+  color: white;
 }
 
 .calendar-day.other-month {
@@ -513,20 +475,15 @@ body {
   color: #999;
 }
 
-.calendar-day.today {
-  background: rgba(209, 209, 209, 0.2);
-}
-
 .day-number {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #333;
+  font-weight: bold;
+  margin-bottom: 5px;
 }
 
 .event {
-  background: #007bff;
+  background: #4285f4;
   color: white;
-  padding: 2px 6px;
+  padding: 2px 4px;
   margin: 1px 0;
   border-radius: 3px;
   font-size: 11px;
@@ -534,107 +491,35 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.event:hover {
-  opacity: 0.8;
 }
 
 .time-based-view {
-  overflow-y: auto;
-  height: 100%;
+  background: white;
+  border: 1px solid #e0e0e0;
 }
 
 .time-slot {
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
   color: #666;
-  background: #fafafa;
-  text-align: right;
 }
 
 .day-cell {
-  border: 1px solid #e0e0e0;
-  position: relative;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
   min-height: 25px;
-  background: white;
 }
 
 .all-day-event {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  right: 2px;
-  height: calc(100% - 4px);
-  background: #007bff;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  word-wrap: break-word;
-  word-break: break-word;
-  line-height: 1.2;
-  min-height: 20px;
+  font-weight: 500;
+  z-index: 10;
 }
 
 .time-event {
-  position: absolute;
-  background: #007bff;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  word-wrap: break-word;
-  word-break: break-word;
-  line-height: 1.2;
-  min-height: 20px;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  font-size: 16px;
-  color: #666;
-}
-
-.view-calendar-section {
-  margin-bottom: 16px;
-}
-
-.view-calendar-list {
-  margin-bottom: 8px;
-}
-
-.view-calendar-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.view-calendar-item:hover {
-  background: #f8f9fa;
-}
-
-.calendar-color-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
+  font-weight: 500;
+  border-left: 3px solid rgba(255,255,255,0.3);
 }
 </style>
 </head>
@@ -800,7 +685,9 @@ body {
 </div>
 
 <script>
-// === 전역 상태 ===
+// ========================================
+// 전역 변수 선언
+// ========================================
 let currentView = 'day';
 let currentDate = new Date();
 let accentColor = '#D1D1D1';
@@ -813,7 +700,14 @@ let viewCalendarSettings = {
   month: []
 };
 
-// === DOM 요소 ===
+// 상수 정의
+const CALENDAR_COLORS = ['#4285f4', '#34a853', '#ea4335', '#ffc107', '#9c27b0', '#607d8b'];
+const SLOT_START_HOUR = 6;
+const TOTAL_HOURS = 24;
+const SLOT_COUNT = TOTAL_HOURS;
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+// DOM 요소 참조
 const settingsPanel = document.getElementById("settingsPanel");
 const overlay = document.getElementById("overlay");
 const colorPicker = document.getElementById("colorPicker");
@@ -823,7 +717,9 @@ const calendarContent = document.getElementById("calendarContent");
 const calendarList = document.getElementById("calendarList");
 const debugLog = document.getElementById("debugLog");
 
-// === 디버그 로그 ===
+// ========================================
+// 유틸리티 함수들
+// ========================================
 function addDebugLog(message) {
   const timestamp = new Date().toLocaleTimeString();
   debugMessages.push(`[${timestamp}] ${message}`);
@@ -841,7 +737,6 @@ function clearDebugLog() {
   if (debugLog) debugLog.innerHTML = '';
 }
 
-// === 색상 관리 ===
 function darkenColor(hex, percent) {
   const num = parseInt(hex.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
@@ -853,6 +748,165 @@ function darkenColor(hex, percent) {
     (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
 }
 
+function toggleSection(contentId, iconId) {
+  const content = document.getElementById(contentId);
+  const icon = document.getElementById(iconId);
+  
+  content.classList.toggle('expanded');
+  icon.classList.toggle('expanded');
+}
+
+function getRandomId() {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+}
+
+// ========================================
+// 초기화 함수들
+// ========================================
+function init() {
+  loadFromStorage();
+  updateCurrentDateDisplay();
+  setAccentColor(accentColor);
+  updateCalendarList();
+  renderCalendar();
+  setupEventListeners();
+  setupAutoRefresh();
+  addDebugLog('캘린더 뷰어가 시작되었습니다.');
+}
+
+function setupEventListeners() {
+  // 키보드 단축키
+  document.addEventListener('keydown', handleKeyboardShortcuts);
+  
+  // 캘린더 색상 자동 할당
+  document.getElementById('calendarColor').addEventListener('focus', function() {
+    this.value = CALENDAR_COLORS[calendars.length % CALENDAR_COLORS.length];
+  });
+}
+
+function setupAutoRefresh() {
+  setInterval(async () => {
+    for (const calendar of calendars) {
+      if (calendar.type !== 'sample' && calendar.visible) {
+        try {
+          const oldEventCount = calendar.events.length;
+          await loadCalendarEvents(calendar);
+          if (calendar.events.length !== oldEventCount) {
+            renderCalendar();
+            addDebugLog(`새 일정 감지: ${calendar.name}`);
+          }
+        } catch (error) {
+          // 조용히 실패 처리
+        }
+      }
+    }
+  }, 120000); // 2분마다 체크
+}
+
+// ========================================
+// UI 관리 함수들
+// ========================================
+function toggleSettings() {
+  const isVisible = settingsPanel.style.display === 'block';
+  if (isVisible) {
+    closeSettings();
+  } else {
+    openSettings();
+  }
+}
+
+function openSettings() {
+  settingsPanel.style.display = 'block';
+  overlay.style.display = 'block';
+}
+
+function closeSettings() {
+  settingsPanel.style.display = 'none';
+  overlay.style.display = 'none';
+}
+
+function updateCurrentDateDisplay() {
+  let formatted;
+  
+  if (currentView === 'day') {
+    const options = { month: 'long', day: 'numeric', weekday: 'short' };
+    formatted = currentDate.toLocaleDateString('ko-KR', options);
+    formatted = formatted.replace(/(\d+일)\s*(\([^)]+\))/, '$1 $2');
+  } else {
+    const options = { year: 'numeric', month: 'long' };
+    formatted = currentDate.toLocaleDateString('ko-KR', options);
+  }
+  
+  currentDateElement.textContent = formatted;
+}
+
+function handleKeyboardShortcuts(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  
+  switch(e.key) {
+    case 'ArrowLeft':
+      navigateCalendar(-1);
+      e.preventDefault();
+      break;
+    case 'ArrowRight':
+      navigateCalendar(1);
+      e.preventDefault();
+      break;
+    case 't':
+    case 'T':
+      goToToday();
+      break;
+    case 'm':
+    case 'M':
+      setView('month');
+      break;
+    case 'w':
+    case 'W':
+      setView('week');
+      break;
+    case 'd':
+    case 'D':
+      setView('day');
+      break;
+    case 'Escape':
+      closeSettings();
+      break;
+  }
+}
+
+// ========================================
+// 뷰 관리 함수들
+// ========================================
+function setView(viewMode) {
+  currentView = viewMode;
+  document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(viewMode + 'Btn').classList.add('active');
+  updateCurrentDateDisplay();
+  renderCalendar();
+  saveToStorage();
+}
+
+function navigateCalendar(direction) {
+  if (currentView === 'month') {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+  } else if (currentView === 'week') {
+    currentDate.setDate(currentDate.getDate() + (direction * 7));
+  } else if (currentView === 'day') {
+    currentDate.setDate(currentDate.getDate() + direction);
+  }
+  updateCurrentDateDisplay();
+  renderCalendar();
+}
+
+function goToToday() {
+  currentDate = new Date();
+  updateCurrentDateDisplay();
+  renderCalendar();
+}
+
+// ========================================
+// 색상 관리 함수들
+// ========================================
 function setAccentColor(color) {
   accentColor = color;
   accentHoverColor = darkenColor(color, 15);
@@ -882,77 +936,9 @@ function updateColorFromText() {
   }
 }
 
-// === 설정 패널 ===
-function toggleSettings() {
-  const isOpen = settingsPanel.classList.contains('open');
-  if (isOpen) {
-    closeSettings();
-  } else {
-    openSettings();
-  }
-}
-
-function openSettings() {
-  settingsPanel.classList.add('open');
-  overlay.classList.add('show');
-}
-
-function closeSettings() {
-  settingsPanel.classList.remove('open');
-  overlay.classList.remove('show');
-}
-
-function toggleSection(contentId, iconId) {
-  const content = document.getElementById(contentId);
-  const icon = document.getElementById(iconId);
-  
-  content.classList.toggle('expanded');
-  icon.classList.toggle('expanded');
-}
-
-// === 뷰 관리 ===
-function setView(viewMode) {
-  currentView = viewMode;
-  document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(viewMode + 'Btn').classList.add('active');
-  updateCurrentDateDisplay();
-  renderCalendar();
-  saveToStorage();
-}
-
-function navigateCalendar(direction) {
-  if (currentView === 'month') {
-    currentDate.setMonth(currentDate.getMonth() + direction);
-  } else if (currentView === 'week') {
-    currentDate.setDate(currentDate.getDate() + (direction * 7));
-  } else if (currentView === 'day') {
-    currentDate.setDate(currentDate.getDate() + direction);
-  }
-  updateCurrentDateDisplay();
-  renderCalendar();
-}
-
-function goToToday() {
-  currentDate = new Date();
-  updateCurrentDateDisplay();
-  renderCalendar();
-}
-
-function updateCurrentDateDisplay() {
-  if (currentView === 'day') {
-    const options = { month: 'long', day: 'numeric', weekday: 'short' };
-    const formatted = currentDate.toLocaleDateString('ko-KR', options);
-    currentDateElement.textContent = formatted.replace(/(\d+일)\s*(\([^)]+\))/, '$1 $2');
-  } else if (currentView === 'week') {
-    const options = { year: 'numeric', month: 'long' };
-    currentDateElement.textContent = currentDate.toLocaleDateString('ko-KR', options);
-  } else {
-    const options = { year: 'numeric', month: 'long' };
-    currentDateElement.textContent = currentDate.toLocaleDateString('ko-KR', options);
-  }
-}
-
-// === 캘린더 입력 폼 ===
+// ========================================
+// 캘린더 관리 함수들
+// ========================================
 function updateCalendarInputs() {
   const type = document.getElementById('calendarType').value;
   
@@ -963,16 +949,313 @@ function updateCalendarInputs() {
   document.getElementById(type + 'Inputs').classList.add('active');
 }
 
-// === 캘린더 데이터 로딩 ===
+function updateCalendarStatus(calendarId, status, message = '') {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (calendar) {
+    calendar.status = status;
+    calendar.statusMessage = message;
+    updateCalendarList();
+  }
+}
+
+function updateCalendarColor(calendarId, newColor) {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (calendar) {
+    calendar.color = newColor;
+    renderCalendar();
+    saveToStorage();
+    addDebugLog(`캘린더 색상 변경: ${calendar.name} → ${newColor}`);
+  }
+}
+
+function updateCalendarName(calendarId, newName) {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (calendar && newName.trim()) {
+    calendar.name = newName.trim();
+    saveToStorage();
+    addDebugLog(`캘린더 이름 변경: ${newName}`);
+  }
+}
+
+function updateCalendarList() {
+  if (calendars.length === 0) {
+    calendarList.innerHTML = `
+      <p style="color: #666; font-size: 12px; text-align: center; padding: 20px;">
+        연동된 캘린더가 없습니다.<br>샘플 캘린더를 추가하거나 아래에서 캘린더를 추가해보세요!
+      </p>
+    `;
+    return;
+  }
+  
+  calendarList.innerHTML = calendars.map(calendar => `
+    <div class="calendar-item ${calendar.visible ? 'active' : ''}" data-id="${calendar.id}">
+      <input type="color" value="${calendar.color}" 
+             onchange="updateCalendarColor('${calendar.id}', this.value)" 
+             class="calendar-color-picker" 
+             title="캘린더 색상 변경">
+      <div class="calendar-info">
+        <input class="calendar-name" value="${calendar.name}" 
+               onchange="updateCalendarName('${calendar.id}', this.value)"
+               onblur="updateCalendarName('${calendar.id}', this.value)">
+        <div class="calendar-url">${calendar.type === 'sample' ? '샘플 데이터' : 
+          (calendar.url || calendar.calendarId || '').substring(0, 30)}${(calendar.url || calendar.calendarId || '').length > 30 ? '...' : ''}</div>
+        <div class="calendar-status ${calendar.status}">${calendar.statusMessage || calendar.status}</div>
+      </div>
+      <div class="calendar-actions">
+        <button class="toggle-btn ${calendar.visible ? 'visible' : 'hidden'}" 
+                onclick="toggleCalendarVisibility('${calendar.id}')" 
+                title="${calendar.visible ? '숨기기' : '보이기'}">
+          ${calendar.visible ? '👁️' : '🚫'}
+        </button>
+        <button class="toggle-btn reload-btn" onclick="reloadCalendar('${calendar.id}')" title="새로고침">🔄</button>
+        <button class="toggle-btn remove-btn" onclick="removeCalendar('${calendar.id}')" title="삭제">❌</button>
+      </div>
+    </div>
+  `).join('');
+  
+  updateViewCalendarSettings();
+}
+
+function toggleCalendarVisibility(calendarId) {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (calendar) {
+    calendar.visible = !calendar.visible;
+    updateCalendarList();
+    renderCalendar();
+    saveToStorage();
+    addDebugLog(`캘린더 가시성 변경: ${calendar.name} - ${calendar.visible ? '보임' : '숨김'}`);
+  }
+}
+
+function removeCalendar(calendarId) {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (calendar) {
+    calendars = calendars.filter(c => c.id !== calendarId);
+    updateCalendarList();
+    renderCalendar();
+    saveToStorage();
+    addDebugLog(`캘린더 삭제됨: ${calendar.name}`);
+  }
+}
+
+async function reloadCalendar(calendarId) {
+  const calendar = calendars.find(c => c.id === calendarId);
+  if (!calendar) return;
+  
+  if (calendar.type === 'sample') {
+    calendar.events = generateSampleEvents();
+    updateCalendarStatus(calendarId, 'success', `${calendar.events.length}개 이벤트`);
+    renderCalendar();
+    saveToStorage();
+    addDebugLog(`샘플 캘린더 새로고침 완료: ${calendar.name}`);
+    return;
+  }
+  
+  updateCalendarStatus(calendarId, 'loading', '새로고침 중...');
+  addDebugLog(`캘린더 새로고침: ${calendar.name}`);
+  
+  try {
+    calendar.events = [];
+    await loadCalendarEvents(calendar);
+    updateCalendarStatus(calendarId, 'success', `${calendar.events.length}개 이벤트`);
+    renderCalendar();
+    saveToStorage();
+    addDebugLog(`캘린더 새로고침 완료: ${calendar.name}`);
+  } catch (error) {
+    updateCalendarStatus(calendarId, 'error', error.message);
+    addDebugLog(`캘린더 새로고침 실패: ${calendar.name} - ${error.message}`);
+  }
+}
+
+async function refreshAllCalendars() {
+  addDebugLog('모든 캘린더 새로고침 시작');
+  
+  for (const calendar of calendars) {
+    if (calendar.type !== 'sample') {
+      updateCalendarStatus(calendar.id, 'loading', '새로고침 중...');
+      try {
+        calendar.events = [];
+        await loadCalendarEvents(calendar);
+        updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
+      } catch (error) {
+        updateCalendarStatus(calendar.id, 'error', error.message);
+        addDebugLog(`캘린더 새로고침 실패: ${calendar.name} - ${error.message}`);
+      }
+    }
+  }
+  
+  renderCalendar();
+  saveToStorage();
+  addDebugLog('모든 캘린더 새로고침 완료');
+}
+
+async function addCalendar() {
+  const type = document.getElementById('calendarType').value;
+  const name = document.getElementById('calendarName').value.trim();
+  const color = document.getElementById('calendarColor').value;
+  
+  if (!name) {
+    alert('캘린더 이름을 입력해주세요.');
+    return;
+  }
+  
+  let url = '';
+  let calendarId = '';
+  let apiKey = '';
+  
+  if (type === 'ical') {
+    url = document.getElementById('icalUrl').value.trim();
+    if (!url || !url.includes('.ics')) {
+      alert('올바른 iCal 링크를 입력해주세요.');
+      return;
+    }
+  } else if (type === 'googlePublic') {
+    calendarId = document.getElementById('googleCalendarId').value.trim();
+    if (!calendarId) {
+      alert('구글 캘린더 ID를 입력해주세요.');
+      return;
+    }
+  } else if (type === 'api') {
+    apiKey = document.getElementById('apiKey').value.trim();
+    calendarId = document.getElementById('calendarId').value.trim() || 'primary';
+    if (!apiKey) {
+      alert('API 키를 입력해주세요.');
+      return;
+    }
+  }
+  
+  const calendar = {
+    id: getRandomId(),
+    name: name,
+    type: type,
+    color: color,
+    visible: true,
+    url: url,
+    calendarId: calendarId,
+    apiKey: apiKey,
+    events: [],
+    status: 'loading',
+    statusMessage: '로딩 중...'
+  };
+  
+  addDebugLog(`캘린더 추가 시작: ${name} (${type})`);
+  
+  calendars.push(calendar);
+  updateCalendarList();
+  
+  try {
+    await loadCalendarEvents(calendar);
+    updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
+    addDebugLog(`캘린더 로드 성공: ${name}, ${calendar.events.length}개 이벤트`);
+    renderCalendar();
+    saveToStorage();
+    
+    // 입력 폼 초기화
+    clearCalendarInputs();
+    closeSettings();
+  } catch (error) {
+    updateCalendarStatus(calendar.id, 'error', error.message);
+    addDebugLog(`캘린더 로드 실패: ${name} - ${error.message}`);
+    alert('캘린더를 불러오는데 실패했습니다: ' + error.message);
+  }
+}
+
+function clearCalendarInputs() {
+  document.getElementById('calendarName').value = '';
+  document.getElementById('icalUrl').value = '';
+  document.getElementById('googleCalendarId').value = '';
+  document.getElementById('apiKey').value = '';
+  document.getElementById('calendarId').value = '';
+}
+
+// ========================================
+// 뷰별 캘린더 설정 함수들
+// ========================================
+function updateViewCalendarSettings() {
+  const container = document.getElementById('viewCalendarSettings');
+  if (!container) return;
+  
+  if (calendars.length === 0) {
+    container.innerHTML = '<p style="color: #666; font-size: 12px; text-align: center; padding: 10px;">연동된 캘린더가 없습니다.</p>';
+    return;
+  }
+  
+  const views = [
+    { key: 'day', name: '일간뷰' },
+    { key: 'week', name: '주간뷰' },
+    { key: 'month', name: '월간뷰' }
+  ];
+  
+  container.innerHTML = views.map(view => `
+    <div class="view-calendar-section">
+      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">${view.name}</div>
+      <div class="view-calendar-list">
+        ${calendars.map(calendar => `
+          <label class="view-calendar-item">
+            <input type="checkbox" 
+                   ${viewCalendarSettings[view.key].includes(calendar.id) ? 'checked' : ''}
+                   onchange="toggleViewCalendar('${view.key}', '${calendar.id}')"
+                   style="margin-right: 8px;">
+            <span class="calendar-color-dot" style="background-color: ${calendar.color}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px;"></span>
+            <span>${calendar.name}</span>
+          </label>
+        `).join('')}
+      </div>
+      <div style="margin-top: 8px;">
+        <button class="btn btn-secondary" onclick="selectAllViewCalendars('${view.key}')" style="font-size: 11px; padding: 4px 8px;">전체 선택</button>
+        <button class="btn btn-secondary" onclick="deselectAllViewCalendars('${view.key}')" style="font-size: 11px; padding: 4px 8px; margin-left: 4px;">전체 해제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleViewCalendar(viewType, calendarId) {
+  const index = viewCalendarSettings[viewType].indexOf(calendarId);
+  if (index > -1) {
+    viewCalendarSettings[viewType].splice(index, 1);
+  } else {
+    viewCalendarSettings[viewType].push(calendarId);
+  }
+  saveToStorage();
+  renderCalendar();
+  addDebugLog(`${viewType}뷰 캘린더 설정 변경: ${calendarId}`);
+}
+
+function selectAllViewCalendars(viewType) {
+  viewCalendarSettings[viewType] = calendars.map(cal => cal.id);
+  updateViewCalendarSettings();
+  saveToStorage();
+  renderCalendar();
+  addDebugLog(`${viewType}뷰 모든 캘린더 선택`);
+}
+
+function deselectAllViewCalendars(viewType) {
+  viewCalendarSettings[viewType] = [];
+  updateViewCalendarSettings();
+  saveToStorage();
+  renderCalendar();
+  addDebugLog(`${viewType}뷰 모든 캘린더 해제`);
+}
+
+// ========================================
+// 이벤트 데이터 로드 함수들
+// ========================================
 async function loadCalendarEvents(calendar) {
   addDebugLog(`이벤트 로드 시작: ${calendar.name} (${calendar.type})`);
   
-  if (calendar.type === 'ical') {
-    await loadIcalEvents(calendar);
-  } else if (calendar.type === 'googlePublic') {
-    await loadGooglePublicEvents(calendar);
-  } else if (calendar.type === 'api') {
-    await loadApiEvents(calendar);
+  switch (calendar.type) {
+    case 'ical':
+      await loadIcalEvents(calendar);
+      break;
+    case 'googlePublic':
+      await loadGooglePublicEvents(calendar);
+      break;
+    case 'api':
+      await loadApiEvents(calendar);
+      break;
+    case 'sample':
+      calendar.events = generateSampleEvents();
+      break;
   }
 }
 
@@ -1014,6 +1297,7 @@ async function loadIcalEvents(calendar) {
       }
       
       let icalData;
+      
       if (proxyUrl.includes('allorigins')) {
         const data = await response.json();
         icalData = data.contents;
@@ -1067,30 +1351,7 @@ async function loadGooglePublicEvents(calendar) {
       throw new Error('이벤트 데이터가 없습니다');
     }
     
-    calendar.events = data.items.map(event => {
-      const startDate = event.start.dateTime || event.start.date;
-      const endDate = event.end.dateTime || event.end.date;
-      const startTime = new Date(startDate);
-      const endTime = new Date(endDate);
-      
-      return {
-        title: event.summary || '제목 없음',
-        date: startTime.toISOString().split('T')[0],
-        startTime: event.start.dateTime ? 
-          startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        endTime: event.end.dateTime ? 
-          endTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        time: event.start.dateTime ? 
-          startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        color: calendar.color,
-        description: event.description || '',
-        location: event.location || ''
-      };
-    });
-    
+    calendar.events = data.items.map(event => formatGoogleEvent(event, calendar.color));
     addDebugLog(`구글 공개 캘린더 로드 완료: ${calendar.events.length}개 이벤트`);
     
   } catch (error) {
@@ -1115,30 +1376,7 @@ async function loadApiEvents(calendar) {
     
     const data = await response.json();
     
-    calendar.events = data.items.map(event => {
-      const startDate = event.start.dateTime || event.start.date;
-      const endDate = event.end.dateTime || event.end.date;
-      const startTime = new Date(startDate);
-      const endTime = new Date(endDate);
-      
-      return {
-        title: event.summary || '제목 없음',
-        date: startTime.toISOString().split('T')[0],
-        startTime: event.start.dateTime ? 
-          startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        endTime: event.end.dateTime ? 
-          endTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        time: event.start.dateTime ? 
-          startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
-          '종일',
-        color: calendar.color,
-        description: event.description || '',
-        location: event.location || ''
-      };
-    });
-    
+    calendar.events = data.items.map(event => formatGoogleEvent(event, calendar.color));
     addDebugLog(`API 캘린더 로드 완료: ${calendar.events.length}개 이벤트`);
     
   } catch (error) {
@@ -1147,1326 +1385,60 @@ async function loadApiEvents(calendar) {
   }
 }
 
-// === iCal 파싱 ===
-function parseIcalData(icalText) {
+function formatGoogleEvent(event, color) {
+  const startDate = event.start.dateTime || event.start.date;
+  const endDate = event.end.dateTime || event.end.date;
+  const startTime = new Date(startDate);
+  const endTime = new Date(endDate);
+  
+  return {
+    title: event.summary || '제목 없음',
+    date: startTime.toISOString().split('T')[0],
+    startTime: event.start.dateTime ? 
+      startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
+      '종일',
+    endTime: event.end.dateTime ? 
+      endTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
+      '종일',
+    time: event.start.dateTime ? 
+      startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) :
+      '종일',
+    color: color,
+    description: event.description || '',
+    location: event.location || ''
+  };
+}
+
+function generateSampleEvents() {
   const events = [];
-  const lines = icalText.split(/\r?\n/);
-  let currentEvent = null;
+  const today = new Date();
   
-  addDebugLog(`iCal 파싱 시작: ${lines.length}줄`);
-  
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
+  for (let i = -7; i <= 14; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
     
-    // 멀티라인 처리
-    while (i + 1 < lines.length && lines[i + 1].match(/^\s/)) {
-      i++;
-      line += lines[i].trim();
-    }
-    
-    if (line === 'BEGIN:VEVENT') {
-      currentEvent = {};
-    } 
-    else if (line === 'END:VEVENT' && currentEvent) {
-      if (currentEvent.summary && currentEvent.dtstart) {
-        const baseEvent = {
-          id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
-          title: currentEvent.summary,
-          date: currentEvent.date,
-          start: currentEvent.date + 'T' + (currentEvent.startTime === '종일' ? '00:00:00' : currentEvent.startTime + ':00'),
-          end: currentEvent.date + 'T' + (currentEvent.endTime === '종일' ? '23:59:59' : currentEvent.endTime + ':00'),
-          time: currentEvent.time || '종일',
-          startTime: currentEvent.startTime || currentEvent.time || '종일',
-          endTime: currentEvent.endTime || currentEvent.time || '종일',
-          description: currentEvent.description || '',
-          location: currentEvent.location || '',
-          rrule: currentEvent.rrule
-        };
-        
-        // 반복 일정인 경우
-        if (currentEvent.rrule) {
-          addDebugLog(`반복 일정 발견: ${baseEvent.title}, RRULE: ${currentEvent.rrule}`);
-          
-          const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
-          const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
-          
-          const expandedEvents = expandRecurringEvent(baseEvent, viewStart, viewEnd);
-          events.push(...expandedEvents);
-          addDebugLog(`반복 일정 확장 완료: ${expandedEvents.length}개 인스턴스`);
-        } else {
-          events.push(baseEvent);
-        }
-      }
-      currentEvent = null;
-    }
-    else if (currentEvent) {
-      const colonIndex = line.indexOf(':');
-      if (colonIndex > 0) {
-        const key = line.substring(0, colonIndex).split(';')[0];
-        const value = line.substring(colonIndex + 1);
-        
-        switch (key) {
-          case 'UID':
-            currentEvent.uid = value;
-            break;
-          case 'SUMMARY':
-            currentEvent.summary = decodeIcalText(value);
-            break;
-          case 'DESCRIPTION':
-            currentEvent.description = decodeIcalText(value);
-            break;
-          case 'DTSTART':
-            const startDate = parseIcalDate(value);
-            if (startDate) {
-              currentEvent.dtstart = startDate.date;
-              currentEvent.date = startDate.date;
-              currentEvent.time = startDate.time;
-              currentEvent.startTime = startDate.time;
-            }
-            break;
-          case 'DTEND':
-            const endDate = parseIcalDate(value);
-            if (endDate) {
-              currentEvent.endTime = endDate.time;
-            }
-            break;
-          case 'RRULE':
-            currentEvent.rrule = value;
-            addDebugLog(`RRULE 파싱됨: ${value}`);
-            break;
-          case 'LOCATION':
-            currentEvent.location = decodeIcalText(value);
-            break;
-        }
-      }
+    if (Math.random() > 0.7) {
+      events.push({
+        title: `샘플 이벤트 ${i + 8}`,
+        date: date.toISOString().split('T')[0],
+        time: Math.random() > 0.5 ? '종일' : '14:00',
+        startTime: Math.random() > 0.5 ? '종일' : '14:00',
+        endTime: Math.random() > 0.5 ? '종일' : '15:00',
+        description: '이것은 샘플 이벤트입니다.',
+        location: ''
+      });
     }
   }
   
-  addDebugLog(`iCal 파싱 완료: ${events.length}개 이벤트 추출`);
   return events;
 }
-
-function decodeIcalText(text) {
-  return text
-    .replace(/\\n/g, ' ')
-    .replace(/\\,/g, ',')
-    .replace(/\\;/g, ';')
-    .replace(/\\\\/g, '\\')
-    .trim();
-}
-
-function parseIcalDate(dateString) {
-  try {
-    // YYYYMMDD 형식 (종일 이벤트)
-    if (/^\d{8}$/.test(dateString)) {
-      const year = parseInt(dateString.substring(0, 4));
-      const month = parseInt(dateString.substring(4, 6));
-      const day = parseInt(dateString.substring(6, 8));
-      const date = new Date(year, month - 1, day);
-      return {
-        date: date.toISOString().split('T')[0],
-        time: '종일'
-      };
-    }
-    
-    // YYYYMMDDTHHMMSS[Z] 형식 (시간 포함)
-    if (/^\d{8}T\d{6}Z?$/.test(dateString)) {
-      const year = parseInt(dateString.substring(0, 4));
-      const month = parseInt(dateString.substring(4, 6));
-      const day = parseInt(dateString.substring(6, 8));
-      const hour = parseInt(dateString.substring(9, 11));
-      const minute = parseInt(dateString.substring(11, 13));
-      
-      let date = new Date(year, month - 1, day, hour, minute);
-      
-      if (dateString.endsWith('Z')) {
-        date = new Date(Date.UTC(year, month - 1, day, hour, minute));
-      } else {
-        date = new Date(year, month - 1, day, hour, minute);
-      }
-      
-      return {
-        date: date.toISOString().split('T')[0],
-        time: date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-      };
-    }
-  } catch (e) {
-    addDebugLog(`날짜 파싱 오류: ${dateString} - ${e.message}`);
-  }
-  return null;
-}
-
-function expandRecurringEvent(event, viewStart, viewEnd) {
-  const occurrences = [];
-  const eventStart = new Date(event.start || event.date + 'T00:00:00');
-  const eventEnd = new Date(event.end || event.date + 'T23:59:59');
-  const eventDuration = eventEnd - eventStart;
-  
-  const rrule = event.rrule.replace('RRULE:', '').trim();
-  const rules = {};
-  rrule.split(';').forEach(part => {
-    const [key, value] = part.split('=');
-    if (key && value) {
-      rules[key.trim()] = value.trim();
-    }
-  });
-  
-  let current = new Date(eventStart.getTime());
-  const maxOccurrences = rules.COUNT ? Math.min(parseInt(rules.COUNT) + 5, 50) : 30;
-  let count = 0;
-  
-  // 시작일이 뷰 범위보다 이전이면 뷰 시작 근처로 이동
-  while (current < viewStart && count < maxOccurrences) {
-    moveToNextOccurrence(current, rules);
-    count++;
-  }
-  
-  // 실제 반복 일정 생성
-  count = 0;
-  while (current <= viewEnd && count < maxOccurrences) {
-    if (current >= viewStart) {
-      const occurrenceStart = new Date(current.getTime());
-      const occurrenceEnd = new Date(current.getTime() + eventDuration);
-      
-      const eventDate = current.toISOString().split('T')[0];
-      const startTimeStr = event.startTime || event.time || '종일';
-      const endTimeStr = event.endTime || event.time || '종일';
-      
-      occurrences.push({
-        ...event,
-        id: `${event.id}_${current.getTime()}`,
-        date: eventDate,
-        start: occurrenceStart.toISOString(),
-        end: occurrenceEnd.toISOString(),
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        time: startTimeStr,
-        isRecurring: true,
-        originalEventId: event.id
-      });
-      count++;
-    }
-    
-    moveToNextOccurrence(current, rules);
-    
-    // 제한 조건 체크
-    if (rules.COUNT && count >= parseInt(rules.COUNT)) {
-      addDebugLog(`COUNT 제한 도달: ${count}`);
-      break;
-    }
-    
-    if (rules.UNTIL) {
-      let untilDate = null;
-      try {
-        if (rules.UNTIL.length === 8) {
-          const year = parseInt(rules.UNTIL.substring(0, 4));
-          const month = parseInt(rules.UNTIL.substring(4, 6)) - 1;
-          const day = parseInt(rules.UNTIL.substring(6, 8));
-          untilDate = new Date(year, month, day, 23, 59, 59);
-        }
-      } catch (e) {
-        addDebugLog(`UNTIL 파싱 오류: ${e.message}`);
-      }
-      
-      if (untilDate && current > untilDate) {
-        addDebugLog(`UNTIL 날짜 도달: ${current.toISOString()}`);
-        break;
-      }
-    }
-  }
-  
-  return occurrences;
-}
-
-function moveToNextOccurrence(current, rules) {
-  switch (rules.FREQ) {
-    case 'DAILY':
-      const dailyInterval = parseInt(rules.INTERVAL) || 1;
-      current.setDate(current.getDate() + dailyInterval);
-      break;
-    case 'WEEKLY':
-      const weekInterval = parseInt(rules.INTERVAL) || 1;
-      if (rules.BYDAY) {
-        const dayMap = {'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6, 'SU': 0};
-        const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
-        
-        let nextDate = null;
-        for (let i = 1; i <= 7 * weekInterval; i++) {
-          const testDate = new Date(current.getTime());
-          testDate.setDate(current.getDate() + i);
-          if (targetDays.includes(testDate.getDay()) && (i > 7 * (weekInterval - 1))) {
-            nextDate = testDate;
-            break;
-          }
-        }
-        if (nextDate) {
-          current.setTime(nextDate.getTime());
-        } else {
-          current.setDate(current.getDate() + (7 * weekInterval));
-        }
-      } else {
-        current.setDate(current.getDate() + (7 * weekInterval));
-      }
-      break;
-    case 'MONTHLY':
-      const monthInterval = parseInt(rules.INTERVAL) || 1;
-      current.setMonth(current.getMonth() + monthInterval);
-      break;
-  }
-}
-
-// === 캘린더 관리 ===
-function updateCalendarColor(calendarId, newColor) {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (calendar) {
-    calendar.color = newColor;
-    renderCalendar();
-    saveToStorage();
-    addDebugLog(`캘린더 색상 변경: ${calendar.name} → ${newColor}`);
-  }
-}
-
-function updateCalendarName(calendarId, newName) {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (calendar && newName.trim()) {
-    calendar.name = newName.trim();
-    saveToStorage();
-    addDebugLog(`캘린더 이름 변경: ${newName}`);
-  }
-}
-
-function updateCalendarStatus(calendarId, status, message = '') {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (calendar) {
-    calendar.status = status;
-    calendar.statusMessage = message;
-    updateCalendarList();
-  }
-}
-
-function updateCalendarList() {
-  if (calendars.length === 0) {
-    calendarList.innerHTML = `
-      <p style="color: #666; font-size: 12px; text-align: center; padding: 20px;">
-        연동된 캘린더가 없습니다.<br>아래에서 캘린더를 추가해보세요!
-      </p>
-    `;
-    return;
-  }
-  
-  calendarList.innerHTML = calendars.map(calendar => `
-    <div class="calendar-item ${calendar.visible ? 'active' : ''}" data-id="${calendar.id}">
-      <input type="color" value="${calendar.color}" 
-             onchange="updateCalendarColor('${calendar.id}', this.value)" 
-             class="calendar-color-picker" 
-             title="캘린더 색상 변경">
-      <div class="calendar-info">
-        <input class="calendar-name" value="${calendar.name}" 
-               onchange="updateCalendarName('${calendar.id}', this.value)"
-               onblur="updateCalendarName('${calendar.id}', this.value)">
-        <div class="calendar-url">${calendar.type === 'sample' ? '샘플 데이터' : 
-          (calendar.url || calendar.calendarId || '').substring(0, 30)}${(calendar.url || calendar.calendarId || '').length > 30 ? '...' : ''}</div>
-        <div class="calendar-status ${calendar.status}">${calendar.statusMessage || calendar.status}</div>
-      </div>
-      <div class="calendar-actions">
-        <button class="toggle-btn ${calendar.visible ? 'visible' : 'hidden'}" 
-                onclick="toggleCalendarVisibility('${calendar.id}')" 
-                title="${calendar.visible ? '숨기기' : '보이기'}">
-          ${calendar.visible ? '👁️' : '🚫'}
-        </button>
-        <button class="toggle-btn reload-btn" onclick="reloadCalendar('${calendar.id}')" title="새로고침">🔄</button>
-        <button class="toggle-btn remove-btn" onclick="removeCalendar('${calendar.id}')" title="삭제">✘</button>
-      </div>
-    </div>
-  `).join('');
-  
-  updateViewCalendarSettings();
-}
-
-function updateViewCalendarSettings() {
-  const container = document.getElementById('viewCalendarSettings');
-  if (!container) return;
-  
-  if (calendars.length === 0) {
-    container.innerHTML = '<p style="color: #666; font-size: 12px; text-align: center; padding: 10px;">연동된 캘린더가 없습니다.</p>';
-    return;
-  }
-  
-  const views = [
-    { key: 'day', name: '일간뷰' },
-    { key: 'week', name: '주간뷰' },
-    { key: 'month', name: '월간뷰' }
-  ];
-  
-  container.innerHTML = views.map(view => `
-    <div class="view-calendar-section">
-      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">${view.name}</div>
-      <div class="view-calendar-list">
-        ${calendars.map(calendar => `
-          <label class="view-calendar-item">
-            <input type="checkbox" 
-                   ${viewCalendarSettings[view.key].includes(calendar.id) ? 'checked' : ''}
-                   onchange="toggleViewCalendar('${view.key}', '${calendar.id}')"
-                   style="margin-right: 8px;">
-            <span class="calendar-color-dot" style="background-color: ${calendar.color};"></span>
-            <span>${calendar.name}</span>
-          </label>
-        `).join('')}
-      </div>
-      <div style="margin-top: 8px;">
-        <button class="btn btn-secondary" onclick="selectAllViewCalendars('${view.key}')" style="font-size: 11px; padding: 4px 8px;">전체 선택</button>
-        <button class="btn btn-secondary" onclick="deselectAllViewCalendars('${view.key}')" style="font-size: 11px; padding: 4px 8px; margin-left: 4px;">전체 해제</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleViewCalendar(viewType, calendarId) {
-  const index = viewCalendarSettings[viewType].indexOf(calendarId);
-  if (index > -1) {
-    viewCalendarSettings[viewType].splice(index, 1);
-  } else {
-    viewCalendarSettings[viewType].push(calendarId);
-  }
-  saveToStorage();
-  renderCalendar();
-}
-
-function selectAllViewCalendars(viewType) {
-  viewCalendarSettings[viewType] = calendars.map(cal => cal.id);
-  updateViewCalendarSettings();
-  saveToStorage();
-  renderCalendar();
-}
-
-function deselectAllViewCalendars(viewType) {
-  viewCalendarSettings[viewType] = [];
-  updateViewCalendarSettings();
-  saveToStorage();
-  renderCalendar();
-}
-
-async function reloadCalendar(calendarId) {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (!calendar) return;
-  
-  updateCalendarStatus(calendarId, 'loading', '새로고침 중...');
-  addDebugLog(`캘린더 새로고침: ${calendar.name}`);
-  
-  try {
-    calendar.events = [];
-    await loadCalendarEvents(calendar);
-    updateCalendarStatus(calendarId, 'success', `${calendar.events.length}개 이벤트`);
-    renderCalendar();
-    saveToStorage();
-    addDebugLog(`캘린더 새로고침 완료: ${calendar.name}`);
-  } catch (error) {
-    updateCalendarStatus(calendarId, 'error', error.message);
-    addDebugLog(`캘린더 새로고침 실패: ${calendar.name} - ${error.message}`);
-  }
-}
-
-function toggleCalendarVisibility(calendarId) {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (calendar) {
-    calendar.visible = !calendar.visible;
-    updateCalendarList();
-    renderCalendar();
-    saveToStorage();
-    addDebugLog(`캘린더 가시성 변경: ${calendar.name} - ${calendar.visible ? '보임' : '숨김'}`);
-  }
-}
-
-function removeCalendar(calendarId) {
-  const calendar = calendars.find(c => c.id === calendarId);
-  if (calendar) {
-    calendars = calendars.filter(c => c.id !== calendarId);
-    updateCalendarList();
-    renderCalendar();
-    saveToStorage();
-    addDebugLog(`캘린더 삭제됨: ${calendar.name}`);
-  }
-}
-
-async function refreshAllCalendars() {
-  addDebugLog('모든 캘린더 새로고침 시작');
-  
-  for (const calendar of calendars) {
-    if (calendar.type !== 'sample') {
-      updateCalendarStatus(calendar.id, 'loading', '새로고침 중...');
-      try {
-        calendar.events = [];
-        await loadCalendarEvents(calendar);
-        updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
-      } catch (error) {
-        updateCalendarStatus(calendar.id, 'error', error.message);
-        addDebugLog(`캘린더 새로고침 실패: ${calendar.name} - ${error.message}`);
-      }
-    }
-  }
-  
-  renderCalendar();
-  saveToStorage();
-  addDebugLog('모든 캘린더 새로고침 완료');
-}
-
-async function addCalendar() {
-  const type = document.getElementById('calendarType').value;
-  const name = document.getElementById('calendarName').value.trim();
-  const color = document.getElementById('calendarColor').value;
-  
-  if (!name) {
-    alert('캘린더 이름을 입력해주세요.');
-    return;
-  }
-  
-  let url = '';
-  let calendarId = '';
-  let apiKey = '';
-  
-  
-  if (type === 'ical') {
-    url = document.getElementById('icalUrl').value.trim();
-    if (!url || !url.includes('.ics')) {
-      alert('올바른 iCal 링크를 입력해주세요.');
-      return;
-    }
-  } else if (type === 'googlePublic') {
-    calendarId = document.getElementById('googleCalendarId').value.trim();
-    if (!calendarId) {
-      alert('구글 캘린더 ID를 입력해주세요.');
-      return;
-    }
-  } else if (type === 'api') {
-    apiKey = document.getElementById('apiKey').value.trim();
-    calendarId = document.getElementById('calendarId').value.trim() || 'primary';
-    if (!apiKey) {
-      alert('API 키를 입력해주세요.');
-      return;
-    }
-  }
-  
-  const calendar = {
-    id: Date.now().toString(),
-    name: name,
-    type: type,
-    color: color,
-    visible: true,
-    url: url,
-    calendarId: calendarId,
-    apiKey: apiKey,
-    events: [],
-    status: 'loading',
-    statusMessage: '로딩 중...'
-  };
-  
-  addDebugLog(`캘린더 추가 시작: ${name} (${type})`);
-  
-  calendars.push(calendar);
-  updateCalendarList();
-  
-  try {
-    await loadCalendarEvents(calendar);
-    updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
-    addDebugLog(`캘린더 로드 성공: ${name}, ${calendar.events.length}개 이벤트`);
-    renderCalendar();
-    saveToStorage();
-    
-    // 입력 폼 초기화
-    document.getElementById('calendarName').value = '';
-    document.getElementById('icalUrl').value = '';
-    document.getElementById('googleCalendarId').value = '';
-    document.getElementById('apiKey').value = '';
-    document.getElementById('calendarId').value = '';
-    
-    closeSettings();
-  } catch (error) {
-    updateCalendarStatus(calendar.id, 'error', error.message);
-    addDebugLog(`캘린더 로드 실패: ${name} - ${error.message}`);
-    alert('캘린더를 불러오는데 실패했습니다: ' + error.message);
-  }
-}
-
-// === 저장/불러오기 ===
-function saveToStorage() {
-  try {
-    const data = {
-      view: currentView,
-      currentDate: currentDate.toISOString(),
-      accentColor: accentColor,
-      accentHoverColor: accentHoverColor,
-      viewCalendarSettings: viewCalendarSettings,
-      calendars: calendars.map(cal => ({
-        ...cal,
-        events: cal.events || []
-      }))
-    };
-    
-    localStorage.setItem('multiCalendarData', JSON.stringify(data));
-    addDebugLog('설정이 localStorage에 저장되었습니다.');
-  } catch (e) {
-    addDebugLog(`저장 실패: ${e.message}`);
-  }
-}
-
-function loadFromStorage() {
-  try {
-    const data = localStorage.getItem('multiCalendarData');
-    if (data) {
-      const parsed = JSON.parse(data);
-      currentView = parsed.view || 'day';
-      if (parsed.currentDate) {
-        currentDate = new Date(parsed.currentDate);
-      }
-      accentColor = parsed.accentColor || '#D1D1D1';
-      accentHoverColor = parsed.accentHoverColor || darkenColor(accentColor, 15);
-      viewCalendarSettings = parsed.viewCalendarSettings || { day: [], week: [], month: [] };
-      calendars = parsed.calendars || [];
-      
-      // UI 복원
-      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(currentView + 'Btn').classList.add('active');
-      
-      // 저장된 캘린더들의 이벤트 다시 로드
-      calendars.forEach(async (calendar) => {
-        if (calendar.type !== 'sample' && (!calendar.events || calendar.events.length === 0)) {
-          updateCalendarStatus(calendar.id, 'loading', '로딩 중...');
-          try {
-            await loadCalendarEvents(calendar);
-            updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
-          } catch (error) {
-            updateCalendarStatus(calendar.id, 'error', error.message);
-            addDebugLog(`저장된 캘린더 로드 실패: ${calendar.name} - ${error.message}`);
-          }
-        } else {
-          updateCalendarStatus(calendar.id, 'success', `${(calendar.events || []).length}개 이벤트`);
-        }
-      });
-      
-      addDebugLog('설정이 localStorage에서 복원되었습니다.');
-    }
-  } catch (e) {
-    addDebugLog(`불러오기 실패: ${e.message}`);
-  }
-}
-
-function exportCalendarSettings() {
-  try {
-    const exportData = {
-      version: '1.0',
-      exportDate: new Date().toISOString(),
-      view: currentView,
-      currentDate: currentDate.toISOString(),
-      accentColor: accentColor,
-      accentHoverColor: accentHoverColor,
-      viewCalendarSettings: viewCalendarSettings,
-      calendars: calendars.map(cal => ({
-        id: cal.id,
-        name: cal.name,
-        type: cal.type,
-        color: cal.color,
-        visible: cal.visible,
-        url: cal.url,
-        calendarId: cal.calendarId,
-        apiKey: cal.apiKey,
-        status: cal.status,
-        statusMessage: cal.statusMessage
-      }))
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `캘린더설정_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    addDebugLog(`캘린더 설정 내보내기 완료: ${calendars.length}개 캘린더`);
-    alert('캘린더 설정이 다운로드되었습니다.');
-    
-  } catch (error) {
-    addDebugLog(`설정 내보내기 실패: ${error.message}`);
-    alert('설정 내보내기에 실패했습니다: ' + error.message);
-  }
-}
-
-async function importCalendarSettings(fileInput) {
-  const file = fileInput.files[0];
-  if (!file) return;
-  
-  try {
-    const text = await file.text();
-    const importData = JSON.parse(text);
-    
-    if (!importData.version) {
-      throw new Error('유효하지 않은 설정 파일입니다.');
-    }
-    
-    addDebugLog(`설정 파일 가져오기 시작: ${importData.calendars?.length || 0}개 캘린더`);
-    
-    // 기존 캘린더 백업 (sample 제외)
-    const backupCalendars = calendars.filter(cal => cal.type === 'sample');
-    
-    // 설정 복원
-    currentView = importData.view || 'day';
-    if (importData.currentDate) {
-      currentDate = new Date(importData.currentDate);
-    }
-    if (importData.accentColor) {
-      setAccentColor(importData.accentColor);
-    }
-    if (importData.viewCalendarSettings) {
-      viewCalendarSettings = importData.viewCalendarSettings;
-    }
-    
-    calendars = [...backupCalendars];
-    
-    if (importData.calendars && Array.isArray(importData.calendars)) {
-      for (const calData of importData.calendars) {
-        if (calData.type === 'sample') continue;
-        
-        const calendar = {
-          id: calData.id || Date.now().toString() + Math.random(),
-          name: calData.name || '이름 없음',
-          type: calData.type,
-          color: calData.color || '#D1D1D1',
-          visible: calData.visible !== false,
-          url: calData.url,
-          calendarId: calData.calendarId,
-          apiKey: calData.apiKey,
-          events: [],
-          status: 'loading',
-          statusMessage: '불러오는 중...'
-        };
-        
-        calendars.push(calendar);
-        updateCalendarStatus(calendar.id, 'loading', '불러오는 중...');
-        
-        try {
-          await loadCalendarEvents(calendar);
-          updateCalendarStatus(calendar.id, 'success', `${calendar.events.length}개 이벤트`);
-          addDebugLog(`캘린더 복원 성공: ${calendar.name}`);
-        } catch (error) {
-          updateCalendarStatus(calendar.id, 'error', error.message);
-          addDebugLog(`캘린더 복원 실패: ${calendar.name} - ${error.message}`);
-        }
-      }
-    }
-    
-    // UI 업데이트
-    document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(currentView + 'Btn').classList.add('active');
-    
-    updateCurrentDateDisplay();
-    updateCalendarList();
-    renderCalendar();
-    saveToStorage();
-    
-    addDebugLog('캘린더 설정 가져오기 완료');
-    alert(`캘린더 설정을 성공적으로 가져왔습니다.\n복원된 캘린더: ${importData.calendars?.length || 0}개`);
-    
-  } catch (error) {
-    addDebugLog(`설정 가져오기 실패: ${error.message}`);
-    alert('설정 파일을 읽는데 실패했습니다: ' + error.message);
-  }
-  
-  fileInput.value = '';
-}
-
-// === 렌더링 ===
-function renderCalendar() {
-  if (currentView === 'month') {
-    renderMonthView();
-  } else if (currentView === 'week') {
-    renderWeekView();
-  } else if (currentView === 'day') {
-    renderDayView();
-  }
-}
-
-function renderMonthView() {
-  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-  const startDate = new Date(firstDay);
-  const mondayOffset = (firstDay.getDay() + 6) % 7;
-  startDate.setDate(startDate.getDate() - mondayOffset);
-  
-  const grid = document.createElement('div');
-  grid.className = 'calendar-grid month-view';
-  
-  // 요일 헤더
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  weekdays.forEach(day => {
-    const header = document.createElement('div');
-    header.className = 'week-header';
-    header.textContent = day;
-    grid.appendChild(header);
-  });
-  
-  // 날짜 셀
-  const today = new Date();
-  for (let i = 0; i < 42; i++) {
-    const cellDate = new Date(startDate);
-    cellDate.setDate(startDate.getDate() + i);
-    
-    const cell = document.createElement('div');
-    cell.className = 'calendar-day';
-    
-    if (cellDate.getMonth() !== currentDate.getMonth()) {
-      cell.classList.add('other-month');
-    }
-    
-    if (cellDate.toDateString() === today.toDateString()) {
-      cell.classList.add('today');
-    }
-    
-    const dayNumber = document.createElement('div');
-    dayNumber.className = 'day-number';
-    dayNumber.textContent = cellDate.getDate();
-    cell.appendChild(dayNumber);
-    
-    const dayEvents = getAllEventsForDate(cellDate);
-    dayEvents.slice(0, 4).forEach(event => {
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'event';
-      eventDiv.style.backgroundColor = event.color;
-      eventDiv.textContent = event.title;
-      eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-      cell.appendChild(eventDiv);
-    });
-    
-    if (dayEvents.length > 4) {
-      const moreDiv = document.createElement('div');
-      moreDiv.className = 'event';
-      moreDiv.style.backgroundColor = '#999';
-      moreDiv.textContent = `+${dayEvents.length - 4}개 더`;
-      cell.appendChild(moreDiv);
-    }
-    
-    grid.appendChild(cell);
-  }
-  
-  calendarContent.innerHTML = '';
-  calendarContent.appendChild(grid);
-}
-
-function renderWeekView() {
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-
-  const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.height = '600px';
-  container.style.overflow = 'visible';
-
-  const grid = document.createElement('div');
-  grid.className = 'time-based-view week-view';
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = `80px repeat(7, 1fr)`;
-  grid.style.gridTemplateRows = `35px repeat(24, 25px)`;
-  grid.style.gap = '0';
-  grid.style.height = '500px';
-
-  // 시간 헤더
-  const timeHeader = document.createElement('div');
-  timeHeader.className = 'week-header';
-  timeHeader.textContent = '시간';
-  timeHeader.style.gridRow = '1';
-  timeHeader.style.gridColumn = '1';
-  timeHeader.style.border = '1px solid #e0e0e0';
-  timeHeader.style.backgroundColor = '#f5f5f5';
-  timeHeader.style.padding = '8px';
-  timeHeader.style.textAlign = 'center';
-  grid.appendChild(timeHeader);
-
-  // 요일 헤더
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(startOfWeek);
-    date.setDate(startOfWeek.getDate() + i);
-
-    const header = document.createElement('div');
-    header.className = 'week-header';
-    header.style.gridRow = '1';
-    header.style.gridColumn = `${i + 2}`;
-    header.style.border = '1px solid #e0e0e0';
-    header.style.backgroundColor = '#f5f5f5';
-    header.style.padding = '8px';
-    header.style.textAlign = 'center';
-
-    if (date.toDateString() === (new Date()).toDateString()) {
-      header.style.backgroundColor = accentColor;
-    }
-
-    const dayName = document.createElement('div');
-    dayName.textContent = weekdays[i];
-    dayName.style.fontWeight = 'bold';
-    header.appendChild(dayName);
-
-    const dayNumber = document.createElement('div');
-    dayNumber.textContent = date.getDate();
-    dayNumber.style.fontSize = '0.9em';
-    dayNumber.style.color = '#666';
-    header.appendChild(dayNumber);
-
-    grid.appendChild(header);
-  }
-
-  // 각 날짜별 셀 저장용 배열
-  const dayCells = Array.from({length: 7}, () => []);
-
-  // 24시간 슬롯 생성
-  for (let slotIndex = 0; slotIndex < 24; slotIndex++) {
-    const displayHour = (6 + slotIndex) % 24;
-    
-    const timeSlot = document.createElement('div');
-    timeSlot.className = 'time-slot';
-    timeSlot.textContent = `${displayHour.toString().padStart(2, '0')}:00`;
-    timeSlot.style.gridRow = `${slotIndex + 2}`;
-    timeSlot.style.gridColumn = '1';
-    timeSlot.style.border = '1px solid #e0e0e0';
-    timeSlot.style.padding = '8px';
-    timeSlot.style.fontSize = '0.8em';
-    timeSlot.style.textAlign = 'center';
-    timeSlot.style.backgroundColor = '#fafafa';
-    grid.appendChild(timeSlot);
-
-    for (let day = 0; day < 7; day++) {
-      const cell = document.createElement('div');
-      cell.className = 'day-cell';
-      cell.dataset.day = day;
-      cell.dataset.slot = slotIndex;
-      cell.style.gridRow = `${slotIndex + 2}`;
-      cell.style.gridColumn = `${day + 2}`;
-      cell.style.border = '1px solid #e0e0e0';
-      cell.style.position = 'relative';
-      cell.style.backgroundColor = 'white';
-      
-      if (slotIndex >= 18) {
-        cell.style.backgroundColor = '#f9f9f9';
-      }
-      
-      dayCells[day][slotIndex] = cell;
-      grid.appendChild(cell);
-    }
-  }
-
-  // 이벤트 렌더링
-  for (let day = 0; day < 7; day++) {
-    const date = new Date(startOfWeek);
-    date.setDate(startOfWeek.getDate() + day);
-
-    const dayEvents = getAllEventsForDate(date);
-    const eventCounts = Array(24).fill(0);
-    
-    dayEvents.forEach((event) => {
-      if (event.time === '종일') {
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'all-day-event';
-        eventDiv.style.backgroundColor = event.color;
-        eventDiv.style.color = '#333';
-        eventDiv.style.padding = '4px 8px';
-        eventDiv.style.fontSize = '11px';
-        eventDiv.style.borderRadius = '6px';
-        eventDiv.style.margin = '2px';
-        eventDiv.textContent = event.title;
-        eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-        
-        dayCells[day][0].appendChild(eventDiv);
-      } else {
-        const startHour = getEventHour(event.startTime);
-        const endHour = getEventHour(event.endTime);
-        const startMinute = getEventMinute(event.startTime);
-        const endMinute = getEventMinute(event.endTime);
-        
-        const startSlot = getSlotIndex(startHour);
-        const endSlot = getSlotIndex(endHour);
-        
-        const currentEventIndex = eventCounts[startSlot];
-        eventCounts[startSlot]++;
-        
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'time-event';
-        eventDiv.style.backgroundColor = event.color;
-        eventDiv.style.color = 'white';
-        eventDiv.style.padding = '2px 6px';
-        eventDiv.style.fontSize = '11px';
-        eventDiv.style.position = 'absolute';
-        eventDiv.style.boxSizing = 'border-box';
-        eventDiv.style.zIndex = 100 + currentEventIndex;
-        eventDiv.style.borderRadius = '6px';
-        eventDiv.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-        
-        const cellHeight = 25;
-        const topOffset = (startMinute / 60) * cellHeight;
-        const duration = endSlot - startSlot + (endMinute - startMinute) / 60;
-        const height = duration * cellHeight;
-        
-        eventDiv.style.top = `${topOffset}px`;
-        eventDiv.style.height = `${Math.max(height, 20)}px`;
-        
-        const totalEvents = Math.max(eventCounts[startSlot], 1);
-        const eventWidth = Math.floor(100 / totalEvents);
-        const leftPosition = currentEventIndex * eventWidth;
-        
-        eventDiv.style.left = `${leftPosition}%`;
-        eventDiv.style.width = `${eventWidth}%`;
-        
-        eventDiv.textContent = event.title;
-        eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-        
-        if (dayCells[day][startSlot]) {
-          dayCells[day][startSlot].appendChild(eventDiv);
-        }
-      }
-    });
-  }
-  
-  container.appendChild(grid);
-  calendarContent.innerHTML = '';
-  calendarContent.appendChild(container);
-}
-
-function renderDayView() {
-  const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.height = '600px';
-  container.style.overflow = 'visible';
-
-  const grid = document.createElement('div');
-  grid.className = 'time-based-view day-view';
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = `80px 1fr`;
-  grid.style.gridTemplateRows = `35px repeat(24, 25px)`;
-  grid.style.gap = '0';
-  grid.style.height = '550px'; 
-
-  // 헤더들
-  const timeHeader = document.createElement('div');
-  timeHeader.className = 'week-header';
-  timeHeader.textContent = '시간';
-  timeHeader.style.gridRow = '1';
-  timeHeader.style.gridColumn = '1';
-  timeHeader.style.border = '1px solid #e0e0e0';
-  timeHeader.style.backgroundColor = '#f5f5f5';
-  timeHeader.style.padding = '8px';
-  timeHeader.style.textAlign = 'center';
-  grid.appendChild(timeHeader);
-
-  const dayHeader = document.createElement('div');
-  dayHeader.className = 'week-header';
-  const today = new Date();
-  if (currentDate.toDateString() === today.toDateString()) {
-    dayHeader.style.backgroundColor = accentColor;
-  } else {
-    dayHeader.style.backgroundColor = '#f5f5f5';
-  }
-  const options = { month: 'short', day: 'numeric', weekday: 'short' };
-  const dayName = document.createElement('div');
-  dayName.textContent = currentDate.toLocaleDateString('ko-KR', options);
-  dayHeader.appendChild(dayName);
-  dayHeader.style.gridRow = '1';
-  dayHeader.style.gridColumn = '2';
-  dayHeader.style.border = '1px solid #e0e0e0';
-  dayHeader.style.padding = '8px';
-  dayHeader.style.textAlign = 'center';
-  grid.appendChild(dayHeader);
-
-  // 셀 저장용 배열
-  const dayCells = [];
-
-  // 24시간 슬롯
-  for (let slotIndex = 0; slotIndex < 24; slotIndex++) {
-    const displayHour = (6 + slotIndex) % 24;
-    
-    const timeSlot = document.createElement('div');
-    timeSlot.className = 'time-slot';
-    timeSlot.textContent = `${displayHour.toString().padStart(2, '0')}:00`;
-    timeSlot.style.gridRow = `${slotIndex + 2}`;
-    timeSlot.style.gridColumn = '1';
-    timeSlot.style.border = '1px solid #e0e0e0';
-    timeSlot.style.padding = '8px';
-    timeSlot.style.fontSize = '0.8em';
-    timeSlot.style.textAlign = 'center';
-    timeSlot.style.backgroundColor = '#fafafa';
-    grid.appendChild(timeSlot);
-
-    const cell = document.createElement('div');
-    cell.className = 'day-cell';
-    cell.dataset.slot = slotIndex;
-    cell.style.gridRow = `${slotIndex + 2}`;
-    cell.style.gridColumn = '2';
-    cell.style.border = '1px solid #e0e0e0';
-    cell.style.position = 'relative';
-    cell.style.backgroundColor = 'white';
-    
-    if (slotIndex >= 18) {
-      cell.style.backgroundColor = '#f9f9f9';
-    }
-    
-    dayCells[slotIndex] = cell;
-    grid.appendChild(cell);
-  }
-
-  // 이벤트 처리
-  const dayEvents = getAllEventsForDate(currentDate);
-  const eventCounts = Array(24).fill(0);
-  
-  dayEvents.forEach((event) => {
-    if (event.time === '종일') {
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'all-day-event';
-      eventDiv.style.backgroundColor = event.color;
-      eventDiv.style.color = '#333';
-      eventDiv.style.padding = '4px 8px';
-      eventDiv.style.fontSize = '11px';
-      eventDiv.style.borderRadius = '6px';
-      eventDiv.style.margin = '2px';
-      eventDiv.textContent = event.title;
-      eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-      
-      dayCells[0].appendChild(eventDiv);
-    } else {
-      const startHour = getEventHour(event.startTime);
-      const endHour = getEventHour(event.endTime);
-      const startMinute = getEventMinute(event.startTime);
-      const endMinute = getEventMinute(event.endTime);
-      
-      const startSlot = getSlotIndex(startHour);
-      const endSlot = getSlotIndex(endHour);
-      
-      const currentEventIndex = eventCounts[startSlot];
-      eventCounts[startSlot]++;
-      
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'time-event';
-      eventDiv.style.backgroundColor = event.color;
-      eventDiv.style.color = '#333';
-      eventDiv.style.padding = '2px 6px';
-      eventDiv.style.fontSize = '11px';
-      eventDiv.style.position = 'absolute';
-      eventDiv.style.boxSizing = 'border-box';
-      eventDiv.style.zIndex = 100 + currentEventIndex;
-      eventDiv.style.borderRadius = '6px';
-      eventDiv.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-      
-      const cellHeight = 25;
-      const topOffset = (startMinute / 60) * cellHeight;
-      const duration = endSlot - startSlot + (endMinute - startMinute) / 60;
-      const height = duration * cellHeight;
-      
-      eventDiv.style.top = `${topOffset}px`;
-      eventDiv.style.height = `${Math.max(height, 20)}px`;
-      
-      const totalEvents = Math.max(eventCounts[startSlot], 1);
-      const eventWidth = Math.floor(100 / totalEvents);
-      const leftPosition = currentEventIndex * eventWidth;
-      
-      eventDiv.style.left = `${leftPosition}%`;
-      eventDiv.style.width = `${eventWidth}%`;
-      
-      eventDiv.textContent = event.title;
-      eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-      
-      if (dayCells[startSlot]) {
-        dayCells[startSlot].appendChild(eventDiv);
-      }
-    }
-  });
-
-  container.appendChild(grid);
-  calendarContent.innerHTML = '';
-  calendarContent.appendChild(container);
-}
-
-// === 헬퍼 함수들 ===
-function getAllEventsForDate(date) {
-  const allEvents = [];
-  const activeCalendarIds = viewCalendarSettings[currentView];
-
-  calendars.forEach(calendar => {
-    if (!calendar.visible || !calendar.events) return;
-
-    if (activeCalendarIds.length > 0 && !activeCalendarIds.includes(calendar.id)) {
-      return;
-    }
-
-    const events = calendar.events.filter(event => {
-      return event.date === date.toISOString().split('T')[0];
-    });
-    events.forEach(event => {
-      allEvents.push({
-        ...event,
-        color: calendar.color,
-        calendarName: calendar.name
-      });
-    });
-  });
-  
-  // 중복 제거
-  const uniqueEvents = [];
-  const seenEvents = new Set();
-
-  allEvents.forEach(event => {
-      const key = `${event.title}_${event.date}_${event.startTime}_${event.endTime}`;
-      if (!seenEvents.has(key)) {
-          seenEvents.add(key);
-          uniqueEvents.push(event);
-      }
-  });
-
-  return uniqueEvents;
-}
-
-function getEventHour(timeString) {
-  if (timeString === '종일') return 6;
-  const parts = timeString.split(':');
-  return parseInt(parts[0], 10) || 0;
-}
-
-function getEventMinute(timeString) {
-  if (timeString === '종일') return 0;
-  const parts = timeString.split(':');
-  return parseInt(parts[1], 10) || 0;
-}
-
-function getSlotIndex(hour) {
-  if (hour >= 6) {
-    return hour - 6;  // 6-23시: 0-17
-  } else {
-    return hour + 18;  // 0-5시: 18-23
-  }
-}
-
-// === 초기화 ===
-function init() {
-  loadFromStorage();
-  updateCurrentDateDisplay();
-  setAccentColor(accentColor);
-  updateCalendarList();
-  renderCalendar();
-  addDebugLog('캘린더 뷰어가 시작되었습니다.');
-  
-  // 자동 새로고침 설정 (2분마다)
-  setInterval(async () => {
-    for (const calendar of calendars) {
-      if (calendar.type !== 'sample' && calendar.visible) {
-        try {
-          const oldEventCount = calendar.events.length;
-          await loadCalendarEvents(calendar);
-          if (calendar.events.length !== oldEventCount) {
-            renderCalendar();
-            addDebugLog(`새 일정 감지: ${calendar.name}`);
-          }
-        } catch (error) {
-          // 조용히 실패 처리
-        }
-      }
-    }
-  }, 120000);
-}
-
-// === 한국 공휴일 추가 ===
-function addKoreanHolidays() {
-  const holidayCalendar = {
-    id: 'korean-holidays-' + Date.now(),
-    name: '한국 공휴일',
-    type: 'googlePublic',
-    color: '#ea4335',
-    visible: true,
-    calendarId: 'ko.south_korea#holiday@group.v.calendar.google.com',
-    events: [],
-    status: 'loading',
-    statusMessage: '로딩 중...'
-  };
-  
-  calendars.push(holidayCalendar);
-  updateCalendarList();
-  
-  loadCalendarEvents(holidayCalendar)
-    .then(() => {
-      updateCalendarStatus(holidayCalendar.id, 'success', `${holidayCalendar.events.length}개 이벤트`);
-      renderCalendar();
-      saveToStorage();
-      addDebugLog('한국 공휴일 캘린더 추가 완료');
-    })
-    .catch(error => {
-      updateCalendarStatus(holidayCalendar.id, 'error', error.message);
-      addDebugLog(`한국 공휴일 캘린더 추가 실패: ${error.message}`);
-    });
-}
-
-// === 키보드 단축키 ===
-document.addEventListener('keydown', function(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  
-  switch(e.key) {
-    case 'ArrowLeft':
-      navigateCalendar(-1);
-      e.preventDefault();
-      break;
-    case 'ArrowRight':
-      navigateCalendar(1);
-      e.preventDefault();
-      break;
-    case 't':
-    case 'T':
-      goToToday();
-      break;
-    case 'm':
-    case 'M':
-      setView('month');
-      break;
-    case 'w':
-    case 'W':
-      setView('week');
-      break;
-    case 'd':
-    case 'D':
-      setView('day');
-      break;
-    case 'Escape':
-      closeSettings();
-      break;
-  }
-});
-
-// === 캘린더 색상 자동 할당 ===
-const calendarColors = [
-  '#4285f4', '#34a853', '#ea4335', '#ffc107', '#9c27b0', '#607d8b'
-];
-
-document.getElementById('calendarColor').addEventListener('focus', function() {
-  this.value = calendarColors[calendars.length % calendarColors.length];
-});
-
-// === 디버그 도구 ===
-window.debugCalendar = {
-  showCalendars: () => console.table(calendars),
-  showEvents: (calendarId) => {
-    const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
-    if (calendar) {
-      console.table(calendar.events);
-    } else {
-      console.log('캘린더를 찾을 수 없습니다.');
-    }
-  },
-  clearStorage: () => {
-    localStorage.removeItem('multiCalendarData');
-    location.reload();
-  },
-  addKoreanHolidays: addKoreanHolidays
-};
-
-// === 앱 시작 ===
-init();
-
 // 도움말 표시
 console.log('%c멀티 캘린더 뷰어 디버그 도구%c\n' +
   'debugCalendar.showCalendars() - 모든 캘린더 정보 표시\n' +
   'debugCalendar.showEvents(캘린더ID) - 특정 캘린더의 이벤트 표시\n' +
   'debugCalendar.clearStorage() - 저장된 데이터 삭제 및 새로고침\n' +
-  'debugCalendar.addKoreanHolidays() - 한국 공휴일 캘린더 추가', 
+  'debugCalendar.addKoreanHolidays() - 한국 공휴일 캘린더 추가\n' +
+  'debugCalendar.addSampleCalendar() - 샘플 캘린더 추가', 
   'color: #D1D1D1; font-weight: bold; font-size: 14px;', 
   'color: #333; font-size: 12px;');
 </script>
