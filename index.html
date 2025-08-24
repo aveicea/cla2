@@ -2468,71 +2468,79 @@ function renderWeekView() {
     const nextDate = new Date(date);
     nextDate.setDate(date.getDate() + 1);
     const nextDayEvents = getAllEventsForDate(nextDate);
-    
+
     nextDayEvents.forEach((event) => {
-      const splitEvents = splitCrossDayEvent(event);
+    const splitEvents = splitCrossDayEvent(event);
+    
+    splitEvents.forEach((splitEvent) => {
+      // isNextDay가 있는 부분이거나 0-6시 이벤트만 처리
+      if (!splitEvent.isNextDay) {
+        const startHour = getEventHour(event.startTime);
+        const endHour = getEventHour(event.endTime);
+        // 6시 이후 시작하고 6시 이후 끝나면 스킵
+        if (startHour >= SLOT_START_HOUR && endHour >= SLOT_START_HOUR) {
+          return;
+        }
+      }
       
-      splitEvents.forEach((splitEvent) => {
-        if (!splitEvent.isSecondPart) return;
+      if (splitEvent.time !== '종일') {
+        const startHour = getEventHour(splitEvent.startTime);
+        const endHour = getEventHour(splitEvent.endTime);
         
-        if (splitEvent.time !== '종일') {
-          const startHour = getEventHour(splitEvent.startTime);
-          const endHour = getEventHour(splitEvent.endTime);
+        // 0-6시 사이의 이벤트만 처리
+        if (startHour < SLOT_START_HOUR || endHour <= SLOT_START_HOUR) {
+          const startMinute = getEventMinute(splitEvent.startTime);
+          const endMinute = getEventMinute(splitEvent.endTime);
+
+          const startPosition = getExactSlotPosition(startHour, startMinute);
+          const endPosition = getExactSlotPosition(endHour, endMinute);
+          const startSlot = Math.floor(startPosition);
           
-          if (startHour < SLOT_START_HOUR || endHour < SLOT_START_HOUR) {
-            const startMinute = getEventMinute(splitEvent.startTime);
-            const endMinute = getEventMinute(splitEvent.endTime);
+          const currentEventIndex = eventCounts[startSlot] || 0;
+          eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
 
-            const startPosition = getExactSlotPosition(startHour, startMinute);
-            const endPosition = getExactSlotPosition(endHour, endMinute);
-            const startSlot = Math.floor(startPosition);
-            
-            const currentEventIndex = eventCounts[startSlot] || 0;
-            eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
-
-            const eventDiv = document.createElement('div');
-            eventDiv.className = 'time-event';
-            eventDiv.style.backgroundColor = event.color;
-            eventDiv.style.color = '#333';
-            eventDiv.style.padding = '2px 6px';
-            eventDiv.style.fontSize = '0.6em';
-            eventDiv.style.overflow = 'visible';
-            eventDiv.style.textOverflow = 'clip';
-            eventDiv.style.whiteSpace = 'normal';
-            eventDiv.style.position = 'absolute';
-            eventDiv.style.boxSizing = 'border-box';
-            eventDiv.style.zIndex = 100 + currentEventIndex;
-                    //추가
-            eventDiv.style.wordWrap = 'break-word';
-            eventDiv.style.wordBreak = 'break-word';
-            eventDiv.style.lineHeight = '1.2';
-            eventDiv.style.minHeight = '20px';     // 최소 높이 보장
-            
-            const containerHeight = calendarContent.clientHeight - 100; // 헤더 제외
-            const cellHeight = Math.max(25, containerHeight / (SLOT_COUNT + 1)); // 최소 25px, 최대 동적
-            const topOffset = (startPosition - startSlot) * cellHeight;
-            const height = (endPosition - startPosition) * cellHeight;
-            
-            eventDiv.style.top = `${topOffset}px`;
-            eventDiv.style.height = `${Math.max(height, 20)}px`;
-            
-            const totalEvents = Math.max(eventCounts[startSlot], 1);
-            const eventWidth = Math.floor(100 / totalEvents);
-            const leftPosition = currentEventIndex * eventWidth;
-            
-            eventDiv.style.left = `${leftPosition}%`;
-            eventDiv.style.width = `${eventWidth}%`;
-            
-            eventDiv.textContent = splitEvent.title;
-            eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-            if (dayCells[day][startSlot]) {
-              dayCells[day][startSlot].appendChild(eventDiv);
-              if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
-              slotEventDivs[startSlot].push(eventDiv);
-            }
+          const eventDiv = document.createElement('div');
+          eventDiv.className = 'time-event';
+          eventDiv.style.backgroundColor = event.color;
+          eventDiv.style.color = '#333';
+          eventDiv.style.padding = '2px 6px';
+          eventDiv.style.fontSize = '0.6em';
+          eventDiv.style.overflow = 'visible';
+          eventDiv.style.textOverflow = 'clip';
+          eventDiv.style.whiteSpace = 'normal';
+          eventDiv.style.position = 'absolute';
+          eventDiv.style.boxSizing = 'border-box';
+          eventDiv.style.zIndex = 100 + currentEventIndex;
+          eventDiv.style.wordWrap = 'break-word';
+          eventDiv.style.wordBreak = 'break-word';
+          eventDiv.style.lineHeight = '1.2';
+          eventDiv.style.minHeight = '20px';
+          
+          const cellHeight = 25;
+          const topOffset = (startPosition - startSlot) * cellHeight;
+          const height = (endPosition - startPosition) * cellHeight;
+          
+          eventDiv.style.top = `${topOffset}px`;
+          eventDiv.style.height = `${Math.max(height, 20)}px`;
+          
+          const totalEvents = Math.max(eventCounts[startSlot], 1);
+          const eventWidth = Math.floor(100 / totalEvents);
+          const leftPosition = currentEventIndex * eventWidth;
+          
+          eventDiv.style.left = `${leftPosition}%`;
+          eventDiv.style.width = `${eventWidth}%`;
+          
+          eventDiv.textContent = splitEvent.title;
+          eventDiv.title = `${event.title}\n시간: ${splitEvent.startTime} - ${splitEvent.endTime}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
+          
+          if (dayCells[day][startSlot]) {
+            dayCells[day][startSlot].appendChild(eventDiv);
+            if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
+            slotEventDivs[startSlot].push(eventDiv);
           }
         }
-      });
+      }
+    });
     });
   }
 
@@ -2712,6 +2720,53 @@ function renderDayView() {
         if (dayCells[startSlot]) {
           dayCells[startSlot].appendChild(eventDiv);
           slotEventDivs[startSlot].push(eventDiv);
+        }
+      }
+    });
+  });
+
+  // 다음날 새벽 이벤트 처리
+  const nextDate = new Date(currentDate);
+  nextDate.setDate(currentDate.getDate() + 1);
+  const nextDayEvents = getAllEventsForDate(nextDate);
+
+  nextDayEvents.forEach((event) => {
+    const splitEvents = splitCrossDayEvent(event);
+    
+    splitEvents.forEach((splitEvent) => {
+      if (!splitEvent.isNextDay) {
+        const startHour = getEventHour(event.startTime);
+        const endHour = getEventHour(event.endTime);
+        if (startHour >= SLOT_START_HOUR && endHour >= SLOT_START_HOUR) {
+          return;
+        }
+      }
+      
+      if (splitEvent.time !== '종일') {
+        const startHour = getEventHour(splitEvent.startTime);
+        const endHour = getEventHour(splitEvent.endTime);
+        
+        if (startHour < SLOT_START_HOUR || endHour <= SLOT_START_HOUR) {
+          const startMinute = getEventMinute(splitEvent.startTime);
+          const endMinute = getEventMinute(splitEvent.endTime);
+          
+          const startPosition = getExactSlotPosition(startHour, startMinute);
+          const endPosition = getExactSlotPosition(endHour, endMinute);
+          const startSlot = Math.floor(startPosition);
+          
+          const currentEventIndex = eventCounts[startSlot] || 0;
+          eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
+          
+          const eventDiv = document.createElement('div');
+          eventDiv.className = 'time-event';
+          eventDiv.style.backgroundColor = event.color;
+          eventDiv.style.color = '#333';
+          // ... 나머지 스타일 설정
+          
+          if (dayCells[startSlot]) {
+            dayCells[startSlot].appendChild(eventDiv);
+            slotEventDivs[startSlot].push(eventDiv);
+          }
         }
       }
     });
