@@ -2155,6 +2155,99 @@ function applyRoundedCorners(eventsInSlot) {
   });
 }
 
+// 이벤트가 이틀에 걸치는지 확인하고 분할
+function splitCrossDayEvent(event) {
+  if (event.time === '종일') return [event];
+  
+  const startHour = getEventHour(event.startTime);
+  const endHour = getEventHour(event.endTime);
+  const startMinute = getEventMinute(event.startTime);
+  const endMinute = getEventMinute(event.endTime);
+  
+  const events = [];
+  
+  // 종료가 시작보다 작으면 자정을 넘는 것
+  const crossesMidnight = endHour < startHour || (endHour === startHour && endMinute < startMinute);
+  
+  if (!crossesMidnight) {
+    // 자정을 안 넘는 경우
+    if (startHour < 6 && endHour >= 6) {
+      // 6시를 걸치는 경우 (예: 3:00-8:00)
+      events.push({
+        ...event,
+        endTime: '05:59',
+        isFirstPart: true
+      });
+      events.push({
+        ...event,
+        startTime: '06:00',
+        isSecondPart: true
+      });
+    } else {
+      // 6시를 안 걸치면 그대로
+      events.push(event);
+    }
+  } else {
+    // 자정을 넘는 경우
+    if (startHour >= 6) {
+      // 6시 이후 시작
+      if (endHour >= 6) {
+        // 예: 22:00-07:00 (자정과 6시 모두 넘음)
+        events.push({
+          ...event,
+          endTime: '23:59',
+          isFirstPart: true
+        });
+        events.push({
+          ...event,
+          startTime: '00:00',
+          endTime: '05:59',
+          isMiddlePart: true,
+          isNextDay: true
+        });
+        events.push({
+          ...event,
+          startTime: '06:00',
+          isLastPart: true,
+          isNextDay: true
+        });
+      } else {
+        // 예: 22:00-02:00 (자정만 넘음)
+        events.push({
+          ...event,
+          endTime: '23:59',
+          isFirstPart: true
+        });
+        events.push({
+          ...event,
+          startTime: '00:00',
+          isSecondPart: true,
+          isNextDay: true
+        });
+      }
+    } else {
+      // 0-6시 사이 시작
+      if (endHour >= 6) {
+        // 예: 02:00-08:00 (6시 걸침)
+        events.push({
+          ...event,
+          endTime: '05:59',
+          isFirstPart: true
+        });
+        events.push({
+          ...event,
+          startTime: '06:00',
+          isSecondPart: true
+        });
+      } else {
+        // 예: 02:00-04:00 (6시 안 걸침)
+        events.push(event);
+      }
+    }
+  }
+  
+  return events;
+}
 
 // 주간 뷰 렌더링 (24시간 버전)
 function renderWeekView() {
@@ -2270,56 +2363,52 @@ function renderWeekView() {
     const slotEventDivs = Array(SLOT_COUNT).fill().map(() => []); // 각 슬롯별 이벤트 div 저장
     
     dayEvents.forEach((event) => {
-      if (event.time === '종일') {
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'all-day-event';
-        eventDiv.style.backgroundColor = event.color;
-        eventDiv.style.color = '#333';
-        eventDiv.style.padding = '4px 8px';
-        eventDiv.style.fontSize = '0.6em';
-        eventDiv.style.borderRadius = '6px';
-        eventDiv.style.margin = '2px';
-        eventDiv.style.overflow = 'visible';
-        eventDiv.style.textOverflow = 'clip';
-        eventDiv.style.whiteSpace = 'normal';
-        eventDiv.style.position = 'absolute';
-        eventDiv.style.top = '2px';
-        eventDiv.style.left = '2px';
-        eventDiv.style.right = '2px';
-        eventDiv.style.height = 'calc(100% - 4px)';
-        eventDiv.textContent = event.title;
-        eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-        eventDiv.style.wordWrap = 'break-word';
-        eventDiv.style.wordBreak = 'break-word';
-        eventDiv.style.lineHeight = '1.2';
-        eventDiv.style.minHeight = '20px';
+      const splitEvents = splitCrossDayEvent(event);
+      
+      splitEvents.forEach((splitEvent) => {
+        if (splitEvent.isNextDay) return;
         
-        dayCells[day][0].appendChild(eventDiv);
-      } else {
-        const startHour = getEventHour(event.startTime);
-        const endHour = getEventHour(event.endTime);
-        const startMinute = getEventMinute(event.startTime);
-        const endMinute = getEventMinute(event.endTime);
-
-        let startPosition = getExactSlotPosition(startHour, startMinute);
-        let endPosition = getExactSlotPosition(endHour, endMinute);
-        
-        // 종료가 시작보다 작으면 다음날로 간주
-        if (endPosition <= startPosition) {
-          endPosition += 24;
-        }
-        
-        // 뷰 범위 제한
-        const viewStartPosition = 0;
-        const viewEndPosition = SLOT_COUNT;
-        
-        if (endPosition > viewStartPosition && startPosition < viewEndPosition) {
-          const clampedStart = Math.max(startPosition, viewStartPosition);
-          const clampedEnd = Math.min(endPosition, viewEndPosition);
-          const startSlot = Math.floor(clampedStart);
+        if (splitEvent.time === '종일') {
+          const eventDiv = document.createElement('div');
+          eventDiv.className = 'all-day-event';
+          eventDiv.style.backgroundColor = event.color;
+          eventDiv.style.color = '#333';
+          eventDiv.style.padding = '4px 8px';
+          eventDiv.style.fontSize = '0.6em';
+          eventDiv.style.borderRadius = '6px';
+          eventDiv.style.margin = '2px';
+          eventDiv.style.overflow = 'visible';
+          eventDiv.style.textOverflow = 'clip';
+          eventDiv.style.whiteSpace = 'normal';
+          eventDiv.style.position = 'absolute';
+          eventDiv.style.top = '2px';
+          eventDiv.style.left = '2px';
+          eventDiv.style.right = '2px';
+          eventDiv.style.height = 'calc(100% - 4px)';
+          eventDiv.textContent = splitEvent.title;
+          eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;                  //추가
+          eventDiv.style.wordWrap = 'break-word';
+          eventDiv.style.wordBreak = 'break-word';
+          eventDiv.style.lineHeight = '1.2';
+          eventDiv.style.minHeight = '20px';     // 최소 높이 보장
           
-          const currentEventIndex = eventCounts[startSlot] || 0;
-          eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
+          dayCells[day][0].appendChild(eventDiv);
+        } else {
+          const startHour = getEventHour(splitEvent.startTime);
+          const endHour = getEventHour(splitEvent.endTime);
+          const startMinute = getEventMinute(splitEvent.startTime);
+          const endMinute = getEventMinute(splitEvent.endTime);
+
+          const startPosition = getExactSlotPosition(startHour, startMinute);
+          const endPosition = getExactSlotPosition(endHour, endMinute);
+          
+          // 그리드 범위 제한
+          const clampedEndPosition = Math.min(endPosition, SLOT_COUNT);
+          const startSlot = Math.floor(startPosition);
+          
+          // 현재 슬롯의 이벤트 개수
+          const currentEventIndex = eventCounts[startSlot];
+          eventCounts[startSlot]++;
 
           const eventDiv = document.createElement('div');
           eventDiv.className = 'time-event';
@@ -2332,36 +2421,41 @@ function renderWeekView() {
           eventDiv.style.whiteSpace = 'normal';
           eventDiv.style.position = 'absolute';
           eventDiv.style.boxSizing = 'border-box';
+                  //추가
           eventDiv.style.wordWrap = 'break-word';
           eventDiv.style.wordBreak = 'break-word';
           eventDiv.style.lineHeight = '1.2';
-          eventDiv.style.minHeight = '20px';
+          eventDiv.style.minHeight = '20px';     // 최소 높이 보장
+          
+          // z-index: 나중에 추가된 이벤트(아래쪽)가 더 위로 오도록
           eventDiv.style.zIndex = 100 + currentEventIndex;
           
-          const cellHeight = 25;
-          const topOffset = (clampedStart - startSlot) * cellHeight;
-          const height = (clampedEnd - clampedStart) * cellHeight;
+          // 정확한 위치와 높이 계산
+          const cellHeight = 25; // 그리드 행 높이
+          const topOffset = (startPosition - startSlot) * cellHeight;
+          const height = (clampedEndPosition - startPosition) * cellHeight;
           
           eventDiv.style.top = `${topOffset}px`;
-          eventDiv.style.height = `${Math.max(height, 20)}px`;
+          eventDiv.style.height = `${Math.max(height, 20)}px`; // 최소 높이 보장
           
+          // 겹치는 이벤트들을 그리드에 딱 맞게 배치
           const totalEvents = Math.max(eventCounts[startSlot], 1);
-          const eventWidth = Math.floor(100 / totalEvents);
+          const eventWidth = Math.floor(100 / totalEvents); // 균등하게 분할
           const leftPosition = currentEventIndex * eventWidth;
           
           eventDiv.style.left = `${leftPosition}%`;
           eventDiv.style.width = `${eventWidth}%`;
           
-          eventDiv.textContent = event.title;
-          eventDiv.title = `${event.title}\n시간: ${event.startTime} - ${event.endTime}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-          
-          if (dayCells[day] && dayCells[day][startSlot]) {
+          eventDiv.textContent = splitEvent.title;
+          eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
+          // 시작 슬롯의 셀에 추가
+          if (dayCells[day][startSlot]) {
             dayCells[day][startSlot].appendChild(eventDiv);
             slotEventDivs[startSlot].push(eventDiv);
           }
         }
-      }
       });
+    });
     
     // 각 슬롯의 이벤트들에 적절한 모서리 처리 적용
     for (let slot = 0; slot < SLOT_COUNT; slot++) {
@@ -2535,61 +2629,55 @@ function renderDayView() {
   const slotEventDivs = Array(SLOT_COUNT).fill().map(() => []);
   
   dayEvents.forEach((event) => {
-    if (event.time === '종일') {
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'all-day-event';
-      eventDiv.style.backgroundColor = event.color;
-      eventDiv.style.color = '#333';
-      eventDiv.style.padding = '4px 8px';
-      eventDiv.style.fontSize = '0.6em';
-      eventDiv.style.borderRadius = '6px';
-      eventDiv.style.margin = '2px';
-      eventDiv.style.overflow = 'visible';
-      eventDiv.style.textOverflow = 'clip';
-      eventDiv.style.whiteSpace = 'normal';
-      eventDiv.style.position = 'absolute';
-      eventDiv.style.top = '2px';
-      eventDiv.style.left = '2px';
-      eventDiv.style.right = '2px';
-      eventDiv.style.height = 'calc(100% - 4px)';
-      eventDiv.textContent = event.title;
-      eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-      eventDiv.style.wordWrap = 'break-word';
-      eventDiv.style.wordBreak = 'break-word';
-      eventDiv.style.lineHeight = '1.2';
-      eventDiv.style.minHeight = '20px';
+    const splitEvents = splitCrossDayEvent(event);
+    
+    splitEvents.forEach((splitEvent) => {
+      if (splitEvent.isNextDay) return;
       
-      dayCells[day][0].appendChild(eventDiv);
-    } else {
-      const startHour = getEventHour(event.startTime);
-      const endHour = getEventHour(event.endTime);
-      const startMinute = getEventMinute(event.startTime);
-      const endMinute = getEventMinute(event.endTime);
-
-      let startPosition = getExactSlotPosition(startHour, startMinute);
-      let endPosition = getExactSlotPosition(endHour, endMinute);
-      
-      // 종료가 시작보다 작으면 다음날로 간주
-      if (endPosition <= startPosition) {
-        endPosition += 24;
-      }
-      
-      // 뷰 범위 제한
-      const viewStartPosition = 0;
-      const viewEndPosition = SLOT_COUNT;
-      
-      if (endPosition > viewStartPosition && startPosition < viewEndPosition) {
-        const clampedStart = Math.max(startPosition, viewStartPosition);
-        const clampedEnd = Math.min(endPosition, viewEndPosition);
-        const startSlot = Math.floor(clampedStart);
+      if (splitEvent.time === '종일') {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'all-day-event';
+        eventDiv.style.backgroundColor = event.color;
+        eventDiv.style.color = '#333';
+        eventDiv.style.padding = '4px 8px';
+        eventDiv.style.fontSize = '0.6em';
+        eventDiv.style.borderRadius = '6px';
+        eventDiv.style.margin = '2px';
+        eventDiv.style.overflow = 'visible';
+        eventDiv.style.textOverflow = 'clip';
+        eventDiv.style.whiteSpace = 'normal';
+        eventDiv.style.position = 'absolute';
+        eventDiv.style.top = '2px';
+        eventDiv.style.left = '2px';
+        eventDiv.style.right = '2px';
+        eventDiv.style.height = 'calc(100% - 4px)';
+        eventDiv.textContent = splitEvent.title;
+        eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;                //추가
+        eventDiv.style.wordWrap = 'break-word';
+        eventDiv.style.wordBreak = 'break-word';
+        eventDiv.style.lineHeight = '1.2';
+        eventDiv.style.minHeight = '20px';     // 최소 높이 보장
         
-        const currentEventIndex = eventCounts[startSlot] || 0;
-        eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
+        dayCells[0].appendChild(eventDiv);
+      } else {
+        const startHour = getEventHour(splitEvent.startTime);
+        const endHour = getEventHour(splitEvent.endTime);
+        const startMinute = getEventMinute(splitEvent.startTime);
+        const endMinute = getEventMinute(splitEvent.endTime);
+
+        const startPosition = getExactSlotPosition(startHour, startMinute);
+        const endPosition = getExactSlotPosition(endHour, endMinute);
+        
+        const clampedEndPosition = Math.min(endPosition, SLOT_COUNT);
+        const startSlot = Math.floor(startPosition);
+        
+        const currentEventIndex = eventCounts[startSlot];
+        eventCounts[startSlot]++;
 
         const eventDiv = document.createElement('div');
         eventDiv.className = 'time-event';
         eventDiv.style.backgroundColor = event.color;
-        eventDiv.style.color = 'white';
+        eventDiv.style.color = '#333';
         eventDiv.style.padding = '2px 6px';
         eventDiv.style.fontSize = '0.6em';
         eventDiv.style.overflow = 'visible';
@@ -2597,15 +2685,17 @@ function renderDayView() {
         eventDiv.style.whiteSpace = 'normal';
         eventDiv.style.position = 'absolute';
         eventDiv.style.boxSizing = 'border-box';
+        eventDiv.style.zIndex = 100 + currentEventIndex;
+        //추가
         eventDiv.style.wordWrap = 'break-word';
         eventDiv.style.wordBreak = 'break-word';
         eventDiv.style.lineHeight = '1.2';
-        eventDiv.style.minHeight = '20px';
-        eventDiv.style.zIndex = 100 + currentEventIndex;
+        eventDiv.style.minHeight = '20px';     // 최소 높이 보장
         
-        const cellHeight = 25;
-        const topOffset = (clampedStart - startSlot) * cellHeight;
-        const height = (clampedEnd - clampedStart) * cellHeight;
+        const containerHeight = calendarContent.clientHeight - 100; // 헤더 제외 
+        const cellHeight = Math.max(25, containerHeight / (SLOT_COUNT + 1)); // 최소 25px, 최대 동적
+        const topOffset = (startPosition - startSlot) * cellHeight;
+        const height = (clampedEndPosition - startPosition) * cellHeight;
         
         eventDiv.style.top = `${topOffset}px`;
         eventDiv.style.height = `${Math.max(height, 20)}px`;
@@ -2617,16 +2707,15 @@ function renderDayView() {
         eventDiv.style.left = `${leftPosition}%`;
         eventDiv.style.width = `${eventWidth}%`;
         
-        eventDiv.textContent = event.title;
-        eventDiv.title = `${event.title}\n시간: ${event.startTime} - ${event.endTime}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-        
-        if (dayCells[day] && dayCells[day][startSlot]) {
-          dayCells[day][startSlot].appendChild(eventDiv);
+        eventDiv.textContent = splitEvent.title;
+        eventDiv.title = `${event.title}\n시간: ${event.time}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
+        if (dayCells[startSlot]) {
+          dayCells[startSlot].appendChild(eventDiv);
           slotEventDivs[startSlot].push(eventDiv);
         }
       }
-    }
     });
+  });
 
   // 각 슬롯의 이벤트들에 적절한 모서리 처리 적용
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
