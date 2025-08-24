@@ -1425,7 +1425,8 @@ function parseIcalData(icalText) {
           endTime: currentEvent.endTime || currentEvent.time || '종일',
           description: currentEvent.description || '',
           location: currentEvent.location || '', // 이 줄 추가
-          rrule: currentEvent.rrule
+          rrule: currentEvent.rrule,
+          exdate: currentEvent.exdate 
         };
         
         // 반복 일정인 경우 - 여기가 핵심!
@@ -1516,6 +1517,9 @@ function parseIcalData(icalText) {
 
 //반복일정확장함수
 function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
+  console.log('Event exdate data:', event.exdate);
+  console.log('Excluded dates set:', excludedDates);
+
    const occurrences = [];
    const eventStart = new Date(event.start || event.date + 'T00:00:00');
    const eventEnd = new Date(event.end || event.date + 'T23:59:59');
