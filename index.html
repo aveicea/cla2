@@ -1397,8 +1397,8 @@ function parseIcalData(icalText) {
   const events = [];
   const lines = icalText.split(/\r?\n/);
   let currentEvent = null;
-  const exceptionEvents = new Map(); // uid_date 형식으로 저장
-  const recurringEvents = []; // 반복 이벤트 임시 저장
+  const exceptionEvents = new Map();
+  const recurringEvents = [];
   
   addDebugLog(`iCal 파싱 시작: ${lines.length}줄`);
   
@@ -1418,7 +1418,7 @@ function parseIcalData(icalText) {
       if (currentEvent.summary && currentEvent.dtstart) {
         const baseEvent = {
           id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
-          uid: currentEvent.uid, // UID 보존 중요!
+          uid: currentEvent.uid,
           title: currentEvent.summary,
           date: currentEvent.date,
           start: currentEvent.date + 'T' + (currentEvent.startTime === '종일' ? '00:00:00' : currentEvent.startTime + ':00'),
@@ -1434,16 +1434,13 @@ function parseIcalData(icalText) {
           isException: currentEvent.isException
         };
         
-        // 수정된 인스턴스인 경우 Map에 저장
+        // 수정된 인스턴스인 경우
         if (currentEvent.recurrenceId && currentEvent.uid) {
           const exceptionKey = `${currentEvent.uid}_${currentEvent.recurrenceId}`;
           exceptionEvents.set(exceptionKey, baseEvent);
           addDebugLog(`예외 이벤트 저장 키: ${exceptionKey}`);
-          // Map의 모든 키 출력
-          addDebugLog(`현재 예외 이벤트 키들: ${Array.from(exceptionEvents.keys()).join(', ')}`);
         }
-
-        // 반복 일정인 경우 나중에 처리
+        // 반복 일정인 경우
         else if (currentEvent.rrule) {
           recurringEvents.push(baseEvent);
           addDebugLog(`반복 일정 저장: ${baseEvent.title}`);
@@ -1499,8 +1496,7 @@ function parseIcalData(icalText) {
           case 'RECURRENCE-ID':
             const recDate = parseIcalDate(value);
             if (recDate) {
-              // 날짜 형식을 YYYY-MM-DD로 통일
-              currentEvent.recurrenceId = recDate.date; // 이미 YYYY-MM-DD 형식
+              currentEvent.recurrenceId = recDate.date;
               currentEvent.isException = true;
               addDebugLog(`RECURRENCE-ID 파싱: ${currentEvent.recurrenceId}`);
             }
@@ -1513,16 +1509,19 @@ function parseIcalData(icalText) {
     }
   }
   
-  // 반복 일정 확장 (예외 이벤트 Map 전달)
-  const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
-  const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
+  // 반복 일정 확장 - 넓은 범위 사용
+  const now = new Date();
+  const viewStart = new Date(now.getFullYear() - 1, 0, 1); // 작년 1월 1일부터
+  const viewEnd = new Date(now.getFullYear() + 2, 11, 31); // 내후년 12월 31일까지
+  
+  addDebugLog(`뷰 범위: ${viewStart.toISOString().split('T')[0]} ~ ${viewEnd.toISOString().split('T')[0]}`);
   
   recurringEvents.forEach(event => {
     const expandedEvents = expandRecurringEventWithExceptions(
       event, 
       viewStart, 
       viewEnd, 
-      exceptionEvents // Map 전달
+      exceptionEvents
     );
     events.push(...expandedEvents);
   });
