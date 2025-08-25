@@ -1484,7 +1484,16 @@ function parseIcalData(icalText) {
             }
             break;
           case 'RRULE':
-            currentEvent.rrule = value;
+          currentEvent.rrule = value;
+          addDebugLog(`RRULE 발견: ${value}`);
+          if (value.includes('BYDAY')) {
+            const byday = value.match(/BYDAY=([^;]+)/);
+            addDebugLog(`  BYDAY: ${byday ? byday[1] : 'none'}`);
+          }
+          if (value.includes('UNTIL')) {
+            const until = value.match(/UNTIL=([^;]+)/);
+            addDebugLog(`  UNTIL: ${until ? until[1] : 'none'}`);
+          }
             break;
           case 'EXDATE':
             if (!currentEvent.exdate) currentEvent.exdate = [];
