@@ -1536,36 +1536,16 @@ function parseIcalData(icalText) {
 function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
     addDebugLog(`반복 일정 확장: ${event.title}, UID: ${event.uid}`);
     
-    // UID가 없으면 문제 발생 가능
     if (!event.uid) {
-        addDebugLog(`경고: UID가 없는 반복 일정 - ${event.title}`);
-        event.uid = event.id; // fallback으로 id 사용
+        event.uid = event.id;
     }
     
     const occurrences = [];
-    
-    // 날짜 파싱 안전하게 처리
-    let eventStart;
-    try {
-        eventStart = new Date(event.start || event.date + 'T00:00:00');
-        if (isNaN(eventStart.getTime())) {
-            addDebugLog(`날짜 파싱 실패: ${event.start || event.date}`);
-            return [];
-        }
-    } catch (e) {
-        addDebugLog(`날짜 파싱 에러: ${e.message}`);
-        return [];
-    }
-    
+    const eventStart = new Date(event.start || event.date + 'T00:00:00');
     const eventEnd = new Date(event.end || event.date + 'T23:59:59');
     const eventDuration = eventEnd - eventStart;
     
     // RRULE 파싱
-    if (!event.rrule) {
-        addDebugLog(`RRULE이 없음: ${event.title}`);
-        return [event];
-    }
-    
     const rrule = event.rrule.replace('RRULE:', '').trim();
     const rules = {};
     rrule.split(';').forEach(part => {
@@ -1575,64 +1555,41 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         }
     });
     
-    addDebugLog(`RRULE 파싱 - FREQ: ${rules.FREQ}, INTERVAL: ${rules.INTERVAL || 1}`);
-    
     // EXDATE 처리
     const excludedDates = new Set();
     if (event.exdate && Array.isArray(event.exdate)) {
-        event.exdate.forEach(exdate => {
-            excludedDates.add(exdate);
-        });
+        event.exdate.forEach(exdate => excludedDates.add(exdate));
     }
     
-    let current = new Date(eventStart.getTime());
-    const maxOccurrences = 100; // 안전 제한
-    let count = 0;
-    let safetyCounter = 0; // 무한루프 방지
-    const processedDates = new Set();
-    
-    // 실제 반복 일정 생성
-    while (current <= viewEnd && count < maxOccurrences && safetyCounter < 500) {
-        safetyCounter++;
-        
-        if (current >= viewStart) {
-            const eventDateStr = current.toISOString().split('T')[0];
-            
-            if (!processedDates.has(eventDateStr)) {
-                processedDates.add(eventDateStr);
-                const exceptionKey = `${event.uid}_${eventDateStr}`;
-                
-                // 디버그 로그 추가
-                if (count < 5) { // 처음 몇 개만 로그
-                    addDebugLog(`처리 중: ${eventDateStr}, 예외키: ${exceptionKey}`);
-                }
-                
-                if (!excludedDates.has(eventDateStr)) {
-                    if (exceptionalEvents && exceptionalEvents.has(exceptionKey)) {
-                        const modifiedEvent = exceptionalEvents.get(exceptionKey);
-                        occurrences.push({
-                            ...modifiedEvent,
-                            isModified: true,
-                            originalUid: event.uid
-                        });
-                        addDebugLog(`수정된 인스턴스 사용: ${eventDateStr}`);
-                    } else {
-                        occurrences.push({
-                            ...event,
-                            id: `${event.uid}_${current.getTime()}`,
-                            date: eventDateStr,
-                            isRecurring: true,
-                            originalUid: event.uid
-                        });
-                    }
-                }
-                count++;
-            }
+    // 종료 조건 파싱
+    let untilDate = null;
+    if (rules.UNTIL) {
+        const parsed = parseIcalDate(rules.UNTIL);
+        if (parsed) {
+            untilDate = new Date(parsed.date + 'T23:59:59');
+            addDebugLog(`UNTIL 날짜: ${untilDate.toISOString()}`);
         }
+    }
+    
+    const maxCount = rules.COUNT ? parseInt(rules.COUNT) : null;
+    
+    // 종료 조건이 없으면 뷰 범위로 제한
+    const effectiveEndDate = untilDate ? 
+        (untilDate < viewEnd ? untilDate : viewEnd) : 
+        viewEnd;
+    
+    let current = new Date(eventStart.getTime());
+    let totalGenerated = 0; // 전체 생성된 개수 (뷰 밖 포함)
+    let viewCount = 0; // 뷰 안에 표시될 개수
+    
+    // 뷰 시작 전까지 빠르게 이동
+    while (current < viewStart && totalGenerated < 1000) {
+        totalGenerated++;
         
-        // 다음 날짜 계산 - 안전하게
-        const prevDate = new Date(current.getTime());
+        // COUNT 체크
+        if (maxCount && totalGenerated >= maxCount) break;
         
+        // 다음 반복으로 이동
         switch (rules.FREQ) {
             case 'DAILY':
                 current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
@@ -1647,22 +1604,65 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
                 current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
                 break;
             default:
-                addDebugLog(`알 수 없는 FREQ: ${rules.FREQ}`);
                 return occurrences;
         }
+    }
+    
+    // 뷰 범위 내 이벤트 생성
+    while (current <= effectiveEndDate && viewCount < 100) {
+        if (current >= viewStart) {
+            const eventDateStr = current.toISOString().split('T')[0];
+            const exceptionKey = `${event.uid}_${eventDateStr}`;
+            
+            if (!excludedDates.has(eventDateStr)) {
+                // 예외 이벤트 확인
+                if (exceptionalEvents && exceptionalEvents.has(exceptionKey)) {
+                    const modifiedEvent = exceptionalEvents.get(exceptionKey);
+                    occurrences.push({
+                        ...modifiedEvent,
+                        isModified: true,
+                        originalUid: event.uid
+                    });
+                    if (viewCount < 3) addDebugLog(`수정된 인스턴스: ${eventDateStr}`);
+                } else {
+                    occurrences.push({
+                        ...event,
+                        id: `${event.uid}_${current.getTime()}`,
+                        date: eventDateStr,
+                        isRecurring: true,
+                        originalUid: event.uid
+                    });
+                }
+                viewCount++;
+            }
+        }
         
-        // 날짜가 제대로 변경되었는지 확인
-        if (current.getTime() === prevDate.getTime()) {
-            addDebugLog(`날짜 변경 실패, 루프 중단`);
+        totalGenerated++;
+        
+        // COUNT 체크
+        if (maxCount && totalGenerated >= maxCount) {
+            addDebugLog(`COUNT 제한 도달: ${maxCount}`);
             break;
+        }
+        
+        // 다음 반복
+        switch (rules.FREQ) {
+            case 'DAILY':
+                current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
+                break;
+            case 'WEEKLY':
+                current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
+                break;
+            case 'MONTHLY':
+                current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
+                break;
+            case 'YEARLY':
+                current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
+                break;
         }
     }
     
-    if (safetyCounter >= 500) {
-        addDebugLog(`안전 제한 도달: ${event.title}`);
-    }
-    
-    addDebugLog(`반복 일정 확장 완료: ${occurrences.length}개 생성`);
+    addDebugLog(`반복 일정 완료: ${occurrences.length}개 (총 ${totalGenerated}개 중)`);
     return occurrences;
 }
 
