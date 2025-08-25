@@ -2403,13 +2403,7 @@ function renderWeekView() {
       }
     }
     
-    // 다음날 새벽 이벤트 처리 (동일한 방식)
- 
-    if (dayCells[day][startSlot]) {
-      dayCells[day][startSlot].appendChild(eventDiv);
-      if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
-      slotEventDivs[startSlot].push(eventDiv);
-    }
+
   }
 
   container.appendChild(grid);
