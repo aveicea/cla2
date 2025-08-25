@@ -1654,12 +1654,39 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         }
         
         // 다음 반복
+        // 다음 반복
         switch (rules.FREQ) {
             case 'DAILY':
                 current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
                 break;
             case 'WEEKLY':
-                current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
+                if (rules.BYDAY) {
+                    // BYDAY가 있으면 다음 지정 요일로 이동
+                    const dayMap = {'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6};
+                    const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
+                    
+                    // 다음 타겟 요일 찾기
+                    let daysToAdd = 1;
+                    let found = false;
+                    for (let i = 1; i <= 7; i++) {
+                        const nextDate = new Date(current);
+                        nextDate.setDate(current.getDate() + i);
+                        if (targetDays.includes(nextDate.getDay())) {
+                            daysToAdd = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    // 다음 주기로 이동
+                    if (!found) {
+                        daysToAdd = 7 * (parseInt(rules.INTERVAL) || 1);
+                    }
+                    current.setDate(current.getDate() + daysToAdd);
+                } else {
+                    // BYDAY가 없으면 매주 같은 요일
+                    current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
+                }
                 break;
             case 'MONTHLY':
                 current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
