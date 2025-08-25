@@ -1749,7 +1749,8 @@ function parseIcalDate(dateString) {
       const date = new Date(year, month - 1, day);
       return {
         date: date.toISOString().split('T')[0],
-        time: '종일'
+        time: '종일',
+        isAllDay: true  // 종일 이벤트 플래그 추가
       };
     }
     
@@ -1762,18 +1763,16 @@ function parseIcalDate(dateString) {
       const minute = parseInt(dateString.substring(11, 13));
       
       let date;
-      // UTC 시간인 경우 (Z로 끝남) 로컬 시간으로 변환
       if (dateString.endsWith('Z')) {
         date = new Date(Date.UTC(year, month - 1, day, hour, minute));
       } else {
         date = new Date(year, month - 1, day, hour, minute);
       }
       
-      // 로컬 시간 기준으로 날짜와 시간 추출
       const localHour = date.getHours();
-      let eventDate = date.toLocaleDateString('en-CA'); // YYYY-MM-DD 형식
+      let eventDate = date.toLocaleDateString('en-CA');
       
-      // 0-5시 이벤트는 전날 날짜로 설정
+      // 시간이 있는 이벤트만 0-6시 처리
       if (localHour >= 0 && localHour < 6) {
         const prevDay = new Date(date);
         prevDay.setDate(prevDay.getDate() - 1);
@@ -1782,7 +1781,8 @@ function parseIcalDate(dateString) {
       
       return {
         date: eventDate,
-        time: date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+        time: date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        isAllDay: false
       };
     }
   } catch (e) {
