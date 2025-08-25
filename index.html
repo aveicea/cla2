@@ -2406,7 +2406,7 @@ function renderWeekView() {
     // 다음날 새벽 이벤트 처리 (동일한 방식)
     // 다음날 새벽 이벤트 처리
     const nextDate = new Date(date);
-    nextDate.setDate(date.getDate() + 1);
+    nextDate.setDate(date.getDate() + 0);
     const nextDayEvents = getAllEventsForDate(nextDate);
 
     nextDayEvents.forEach((event) => {
@@ -2440,7 +2440,7 @@ function renderWeekView() {
     const eventDiv = document.createElement('div');
     eventDiv.className = 'time-event';
     eventDiv.style.backgroundColor = event.color;
-    eventDiv.style.color = '#333';
+    eventDiv.style.color = 'white';
     eventDiv.style.padding = '2px 6px';
     eventDiv.style.fontSize = '0.6em';
     eventDiv.style.overflow = 'visible';
