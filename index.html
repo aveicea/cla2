@@ -2404,76 +2404,12 @@ function renderWeekView() {
     }
     
     // 다음날 새벽 이벤트 처리 (동일한 방식)
-    // 다음날 새벽 이벤트 처리
-    const nextDate = new Date(date);
-    nextDate.setDate(date.getDate() + 1);
-    const nextDayEvents = getAllEventsForDate(nextDate);
-
-    nextDayEvents.forEach((event) => {
-    // 0-6시 사이의 이벤트만 처리
-    const originalStartHour = getEventHour(event.startTime);
-    const originalEndHour = getEventHour(event.endTime);
-    
-    // 6시 이후 시작하는 이벤트는 스킵
-    if (originalStartHour >= SLOT_START_HOUR) return;
-    
-    // 0-6시 사이 이벤트를 현재 날짜(어제) 그리드에 표시
-    const startMinute = getEventMinute(event.startTime);
-    const endMinute = getEventMinute(event.endTime);
-    
-    const startPosition = getExactSlotPosition(originalStartHour, startMinute);
-    let endPosition = getExactSlotPosition(originalEndHour, endMinute);
-    
-    // 6시 넘어가면 24(슬롯 끝)로 제한
-    if (originalEndHour >= SLOT_START_HOUR) {
-      endPosition = 24;
-    }
-    
-    const startSlot = Math.floor(startPosition);
-    
-    const currentEventIndex = eventCounts[startSlot] || 0;
-    eventCounts[startSlot] = (eventCounts[startSlot] || 0) + 1;
-    
-    const eventDiv = document.createElement('div');
-    eventDiv.className = 'time-event';
-    eventDiv.style.backgroundColor = event.color;
-    eventDiv.style.color = '#333';
-    eventDiv.style.padding = '2px 6px';
-    eventDiv.style.fontSize = '0.6em';
-    eventDiv.style.overflow = 'visible';
-    eventDiv.style.textOverflow = 'clip';
-    eventDiv.style.whiteSpace = 'normal';
-    eventDiv.style.position = 'absolute';
-    eventDiv.style.boxSizing = 'border-box';
-    eventDiv.style.zIndex = 100 + currentEventIndex;
-    eventDiv.style.wordWrap = 'break-word';
-    eventDiv.style.wordBreak = 'break-word';
-    eventDiv.style.lineHeight = '1.2';
-    eventDiv.style.minHeight = '20px';
-    
-    const cellHeight = 25;
-    const topOffset = (startPosition - startSlot) * cellHeight;
-    const height = (endPosition - startPosition) * cellHeight;
-    
-    eventDiv.style.top = `${topOffset}px`;
-    eventDiv.style.height = `${Math.max(height, 20)}px`;
-    
-    const totalEvents = Math.max(eventCounts[startSlot], 1);
-    const eventWidth = Math.floor(100 / totalEvents);
-    const leftPosition = currentEventIndex * eventWidth;
-    
-    eventDiv.style.left = `${leftPosition}%`;
-    eventDiv.style.width = `${eventWidth}%`;
-    
-    eventDiv.textContent = event.title;
-    eventDiv.title = `${event.title}\n시간: ${event.startTime} - ${event.endTime}\n캘린더: ${event.calendarName}${event.location ? '\n위치: ' + event.location : ''}${event.description ? '\n설명: ' + event.description : ''}`;
-    
+ 
     if (dayCells[day][startSlot]) {
       dayCells[day][startSlot].appendChild(eventDiv);
       if (!slotEventDivs[startSlot]) slotEventDivs[startSlot] = [];
       slotEventDivs[startSlot].push(eventDiv);
     }
-    });
   }
 
   container.appendChild(grid);
