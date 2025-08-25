@@ -1397,7 +1397,7 @@ function parseIcalData(icalText) {
   const events = [];
   const lines = icalText.split(/\r?\n/);
   let currentEvent = null;
-  const exceptionEvents = new Map(); // 수정된 인스턴스 저장
+  const exceptionEvents = new Map(); // uid_date 형식으로 저장
   const recurringEvents = []; // 반복 이벤트 임시 저장
   
   addDebugLog(`iCal 파싱 시작: ${lines.length}줄`);
@@ -1418,6 +1418,7 @@ function parseIcalData(icalText) {
       if (currentEvent.summary && currentEvent.dtstart) {
         const baseEvent = {
           id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
+          uid: currentEvent.uid, // UID 보존 중요!
           title: currentEvent.summary,
           date: currentEvent.date,
           start: currentEvent.date + 'T' + (currentEvent.startTime === '종일' ? '00:00:00' : currentEvent.startTime + ':00'),
@@ -1427,23 +1428,25 @@ function parseIcalData(icalText) {
           endTime: currentEvent.endTime || currentEvent.time || '종일',
           description: currentEvent.description || '',
           location: currentEvent.location || '',
-          exdate: currentEvent.exdate || null,
+          exdate: currentEvent.exdate || [],
           rrule: currentEvent.rrule,
           recurrenceId: currentEvent.recurrenceId,
-          isException: currentEvent.isException,
-          isAllDay: currentEvent.isAllDay
+          isException: currentEvent.isException
         };
         
-        // 수정된 인스턴스인 경우
+        // 수정된 인스턴스인 경우 Map에 저장
         if (currentEvent.recurrenceId && currentEvent.uid) {
           const exceptionKey = `${currentEvent.uid}_${currentEvent.recurrenceId}`;
           exceptionEvents.set(exceptionKey, baseEvent);
-          addDebugLog(`예외 이벤트 저장: ${exceptionKey}`);
+          addDebugLog(`예외 이벤트 저장 키: ${exceptionKey}`);
+          // Map의 모든 키 출력
+          addDebugLog(`현재 예외 이벤트 키들: ${Array.from(exceptionEvents.keys()).join(', ')}`);
         }
-        // 반복 일정인 경우
+
+        // 반복 일정인 경우 나중에 처리
         else if (currentEvent.rrule) {
           recurringEvents.push(baseEvent);
-          addDebugLog(`반복 일정 발견: ${baseEvent.title}, RRULE: ${currentEvent.rrule}`);
+          addDebugLog(`반복 일정 저장: ${baseEvent.title}`);
         }
         // 일반 단일 이벤트
         else if (!currentEvent.isException) {
@@ -1455,74 +1458,53 @@ function parseIcalData(icalText) {
     else if (currentEvent) {
       const colonIndex = line.indexOf(':');
       if (colonIndex > 0) {
-        const keyPart = line.substring(0, colonIndex);
-        const key = keyPart.split(';')[0];
+        const key = line.substring(0, colonIndex).split(';')[0];
         const value = line.substring(colonIndex + 1);
         
         switch (key) {
           case 'UID':
             currentEvent.uid = value;
             break;
-            
           case 'SUMMARY':
             currentEvent.summary = decodeIcalText(value);
             break;
-            
           case 'DESCRIPTION':
             currentEvent.description = decodeIcalText(value);
             break;
-            
           case 'DTSTART':
-            // VALUE=DATE 체크 (종일 이벤트)
-            const isDateOnly = keyPart.includes('VALUE=DATE');
-            addDebugLog(`DTSTART 파싱: ${keyPart} = ${value}, 종일여부: ${isDateOnly}`);
-            
-            const startDate = parseIcalDate(value, isDateOnly);
+            const startDate = parseIcalDate(value);
             if (startDate) {
               currentEvent.dtstart = startDate.date;
               currentEvent.date = startDate.date;
               currentEvent.time = startDate.time;
               currentEvent.startTime = startDate.time;
-              currentEvent.isAllDay = startDate.isAllDay || isDateOnly;
-              
-              addDebugLog(`  결과 - 날짜: ${startDate.date}, 시간: ${startDate.time}, 종일: ${currentEvent.isAllDay}`);
             }
             break;
-            
           case 'DTEND':
-            const isEndDateOnly = keyPart.includes('VALUE=DATE');
-            const endDate = parseIcalDate(value, isEndDateOnly);
+            const endDate = parseIcalDate(value);
             if (endDate) {
               currentEvent.endTime = endDate.time;
-              // 종일 이벤트의 DTEND는 다음날 00:00를 의미하므로 조정
-              if (isEndDateOnly && endDate.date !== currentEvent.date) {
-                currentEvent.endTime = '종일';
-              }
             }
             break;
-            
           case 'RRULE':
             currentEvent.rrule = value;
             break;
-            
           case 'EXDATE':
             if (!currentEvent.exdate) currentEvent.exdate = [];
-            const exdateIsDateOnly = keyPart.includes('VALUE=DATE');
-            const parsed = parseIcalDate(value, exdateIsDateOnly);
+            const parsed = parseIcalDate(value);
             if (parsed && parsed.date) {
               currentEvent.exdate.push(parsed.date);
             }
             break;
-            
           case 'RECURRENCE-ID':
-            const recIsDateOnly = keyPart.includes('VALUE=DATE');
-            const recDate = parseIcalDate(value, recIsDateOnly);
+            const recDate = parseIcalDate(value);
             if (recDate) {
-              currentEvent.recurrenceId = recDate.date;
+              // 날짜 형식을 YYYY-MM-DD로 통일
+              currentEvent.recurrenceId = recDate.date; // 이미 YYYY-MM-DD 형식
               currentEvent.isException = true;
+              addDebugLog(`RECURRENCE-ID 파싱: ${currentEvent.recurrenceId}`);
             }
             break;
-            
           case 'LOCATION':
             currentEvent.location = decodeIcalText(value);
             break;
@@ -1531,7 +1513,7 @@ function parseIcalData(icalText) {
     }
   }
   
-  // 반복 일정 확장
+  // 반복 일정 확장 (예외 이벤트 Map 전달)
   const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
   const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 0);
   
@@ -1540,7 +1522,7 @@ function parseIcalData(icalText) {
       event, 
       viewStart, 
       viewEnd, 
-      exceptionEvents
+      exceptionEvents // Map 전달
     );
     events.push(...expandedEvents);
   });
@@ -1552,14 +1534,14 @@ function parseIcalData(icalText) {
 
 //반복일정확장함수
 function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
-    console.log('Expanding recurring event:', event.title, event.id);
+    addDebugLog(`반복 일정 확장: ${event.title}, UID: ${event.uid}`);
     
     const occurrences = [];
     const eventStart = new Date(event.start || event.date + 'T00:00:00');
     const eventEnd = new Date(event.end || event.date + 'T23:59:59');
     const eventDuration = eventEnd - eventStart;
     
-    // RRULE 파싱 개선
+    // RRULE 파싱
     const rrule = event.rrule.replace('RRULE:', '').trim();
     const rules = {};
     rrule.split(';').forEach(part => {
@@ -1569,113 +1551,86 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         }
     });
     
-    addDebugLog(`반복 일정 확장 시작: ${event.title}`);
-    addDebugLog(`RRULE 분석 - FREQ: ${rules.FREQ}, COUNT: ${rules.COUNT}, UNTIL: ${rules.UNTIL}, INTERVAL: ${rules.INTERVAL}`);
-    addDebugLog(`뷰 범위: ${viewStart.toISOString()} ~ ${viewEnd.toISOString()}`);
-
-
-    // EXDATE 처리
-  // EXDATE 처리
+    // EXDATE 처리 (제외 날짜)
     const excludedDates = new Set();
-    if (event.exdate) {
-        const exdates = Array.isArray(event.exdate) ? event.exdate : [event.exdate];
-        exdates.forEach(exdate => {
-            // exdate가 이미 날짜 문자열 형식 (YYYY-MM-DD)
-            const excludeDate = new Date(exdate + 'T00:00:00');
-            excludedDates.add(excludeDate.toDateString());
+    if (event.exdate && event.exdate.length > 0) {
+        event.exdate.forEach(exdate => {
+            excludedDates.add(exdate); // 날짜 문자열 그대로 저장
+            addDebugLog(`제외 날짜 추가: ${exdate}`);
         });
     }
     
     let current = new Date(eventStart.getTime());
-    const maxOccurrences = rules.COUNT ? 
-    Math.min(parseInt(rules.COUNT) + 5, 50) : 30;
+    const maxOccurrences = rules.COUNT ? Math.min(parseInt(rules.COUNT), 100) : 100;
     let count = 0;
     
-    // 시작일이 뷰 범위보다 이전이면 뷰 시작 근처로 이동
+    // 뷰 시작 근처로 이동
     while (current < viewStart && count < maxOccurrences) {
-        // 다음 반복일로 이동
+        // 다음 반복 날짜 계산 로직...
         switch (rules.FREQ) {
             case 'DAILY':
-                const dailyInterval = parseInt(rules.INTERVAL) || 1;
-                current.setDate(current.getDate() + dailyInterval);
+                current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
                 break;
             case 'WEEKLY':
-                const weekInterval = parseInt(rules.INTERVAL) || 1;
-                // BYDAY 규칙 처리
-                if (rules.BYDAY) {
-                    const dayMap = {'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6, 'SU': 0};
-                    const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
-                    
-                    // 현재 요일에서 다음 타겟 요일로 이동
-                    let moved = false;
-                    for (let i = 1; i <= 7; i++) {
-                        const testDate = new Date(current.getTime());
-                        testDate.setDate(current.getDate() + i);
-                        if (targetDays.includes(testDate.getDay())) {
-                            current = testDate;
-                            moved = true;
-                            break;
-                        }
-                    }
-                    if (!moved) {
-                        current.setDate(current.getDate() + (7 * weekInterval));
-                    }
-                } else {
-                    current.setDate(current.getDate() + (7 * weekInterval));
-                }
+                current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
                 break;
             case 'MONTHLY':
-                const monthInterval = parseInt(rules.INTERVAL) || 1;
-                current.setMonth(current.getMonth() + monthInterval);
+                current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
                 break;
-            default:
-                console.log('Unsupported frequency:', rules.FREQ);
-                return occurrences;
         }
         count++;
     }
     
     // 실제 반복 일정 생성
     count = 0;
+    const processedDates = new Set(); // 중복 방지용
+    
     while (current <= viewEnd && count < maxOccurrences) {
         if (current >= viewStart) {
-            const currentDateString = current.toDateString();
-            const exceptionKey = `${event.id}_${currentDateString}`;
+            const eventDateStr = current.toISOString().split('T')[0];
             
-            
-            // 제외된 날짜인지 확인
-            if (!excludedDates.has(currentDateString)) {
-                // 수정된 인스턴스가 있는지 확인
-                if (exceptionalEvents.has(exceptionKey)) {
-                    const exceptionalEvent = exceptionalEvents.get(exceptionKey);
-                    occurrences.push({
-                        ...exceptionalEvent,
-                        isException: true,
-                        originalEventId: event.id
-                    });
-                } else {
-                    // 원본 반복 인스턴스 사용
-                    const occurrenceStart = new Date(current.getTime());
-                    const occurrenceEnd = new Date(current.getTime() + eventDuration);
-                    
-                    // 날짜 형식 맞추기
-                    // 올바른 날짜 계산
-                    const eventDate = current.toISOString().split('T')[0];
-                    const startTimeStr = event.startTime || event.time || '종일';
-                    const endTimeStr = event.endTime || event.time || '종일';
-                    
-                    occurrences.push({
-                        ...event,
-                        id: `${event.id}_${current.getTime()}`,
-                        date: eventDate,
-                        start: occurrenceStart.toISOString(),
-                        end: occurrenceEnd.toISOString(),
-                        startTime: startTimeStr,
-                        endTime: endTimeStr,
-                        time: startTimeStr,
-                        isRecurring: true,
-                        originalEventId: event.id
-                    });
+            // 이미 처리한 날짜인지 확인
+            if (!processedDates.has(eventDateStr)) {
+                processedDates.add(eventDateStr);
+                
+                // 예외 이벤트 키 생성
+                const exceptionKey = `${event.uid}_${eventDateStr}`;
+                addDebugLog(`예외 이벤트 조회 키: ${exceptionKey}`);
+                addDebugLog(`예외 이벤트 존재 여부: ${exceptionalEvents.has(exceptionKey)}`);   
+                
+                // 제외된 날짜가 아니고
+                if (!excludedDates.has(eventDateStr)) {
+                    // 수정된 인스턴스가 있는지 확인
+                    if (exceptionalEvents && exceptionalEvents.has(exceptionKey)) {
+                        // 수정된 버전 사용
+                        const modifiedEvent = exceptionalEvents.get(exceptionKey);
+                        occurrences.push({
+                            ...modifiedEvent,
+                            isModified: true,
+                            originalUid: event.uid,
+                            recurringId: `${event.uid}_${eventDateStr}`
+                        });
+                        addDebugLog(`수정된 인스턴스 사용: ${eventDateStr}`);
+                    } else {
+                        // 원본 반복 인스턴스 생성
+                        const occurrenceStart = new Date(current.getTime());
+                        const occurrenceEnd = new Date(current.getTime() + eventDuration);
+                        
+                        occurrences.push({
+                            ...event,
+                            id: `${event.uid}_${current.getTime()}`,
+                            uid: event.uid,
+                            date: eventDateStr,
+                            start: occurrenceStart.toISOString(),
+                            end: occurrenceEnd.toISOString(),
+                            startTime: event.startTime,
+                            endTime: event.endTime,
+                            time: event.time,
+                            isRecurring: true,
+                            originalUid: event.uid,
+                            recurringId: `${event.uid}_${eventDateStr}`
+                        });
+                    }
                 }
                 count++;
             }
@@ -1684,80 +1639,27 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         // 다음 반복 날짜 계산
         switch (rules.FREQ) {
             case 'DAILY':
-                const dailyInterval = parseInt(rules.INTERVAL) || 1;
-                current.setDate(current.getDate() + dailyInterval);
+                current.setDate(current.getDate() + (parseInt(rules.INTERVAL) || 1));
                 break;
             case 'WEEKLY':
-                const weekInterval = parseInt(rules.INTERVAL) || 1;
-                // BYDAY 처리
-                if (rules.BYDAY) {
-                    const dayMap = {'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6, 'SU': 0};
-                    const targetDays = rules.BYDAY.split(',').map(day => dayMap[day.trim()]);
-                    
-                    // 현재 날짜에서 다음 타겟 요일 찾기
-                    let nextDate = null;
-                    for (let i = 1; i <= 7 * weekInterval; i++) {
-                        const testDate = new Date(current.getTime());
-                        testDate.setDate(current.getDate() + i);
-                        if (targetDays.includes(testDate.getDay()) && 
-                            (i > 7 * (weekInterval - 1))) { // interval 간격 체크
-                            nextDate = testDate;
-                            break;
-                        }
-                    }
-                    if (nextDate) {
-                        current = nextDate;
-                    } else {
-                        current.setDate(current.getDate() + (7 * weekInterval));
-                    }
-                } else {
-                    current.setDate(current.getDate() + (7 * weekInterval));
-                }
+                current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
                 break;
             case 'MONTHLY':
-                const monthInterval = parseInt(rules.INTERVAL) || 1;
-                current.setMonth(current.getMonth() + monthInterval);
+                current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
                 break;
         }
-              
-        // UNTIL 값을 제대로 파싱
-        // 기존 코드를 이 부분으로 교체
-        let untilDate = null;
+        
+        // COUNT나 UNTIL 제한 확인
+        if (rules.COUNT && count >= parseInt(rules.COUNT)) break;
         if (rules.UNTIL) {
-            try {
-                if (rules.UNTIL.length === 8) {
-                    // YYYYMMDD 형식
-                    const year = parseInt(rules.UNTIL.substring(0, 4));
-                    const month = parseInt(rules.UNTIL.substring(4, 6)) - 1;
-                    const day = parseInt(rules.UNTIL.substring(6, 8));
-                    untilDate = new Date(year, month, day, 23, 59, 59);
-                } else if (rules.UNTIL.includes('T')) {
-                    // YYYYMMDDTHHMMSS[Z] 형식
-                    const parsed = parseIcalDate(rules.UNTIL);
-                    if (parsed) {
-                        untilDate = new Date(parsed.date + 'T' + (parsed.time === '종일' ? '23:59:59' : parsed.time + ':00'));
-                    }
-                }
-                addDebugLog(`UNTIL 파싱 결과: ${untilDate ? untilDate.toISOString() : '실패'}`);
-            } catch (e) {
-                addDebugLog(`UNTIL 파싱 오류: ${e.message}`);
-            }
+            const untilDate = parseIcalDate(rules.UNTIL);
+            if (untilDate && current > new Date(untilDate.date)) break;
         }
-
-        // 제한 조건 체크를 루프 끝으로 이동 (라인 약 620 근처)
-        if (rules.COUNT && count >= parseInt(rules.COUNT)) {
-            addDebugLog(`COUNT 제한 도달: ${count}`);
-            break;
-        }
-        if (untilDate && current > untilDate) {
-            addDebugLog(`UNTIL 날짜 도달: ${current.toISOString()} > ${untilDate.toISOString()}`);
-            break;
-        }
-            }
-            
-            console.log(`Generated ${occurrences.length} occurrences for ${event.title}`);
-            return occurrences;
-      } 
+    }
+    
+    addDebugLog(`반복 일정 확장 완료: ${occurrences.length}개 인스턴스 생성`);
+    return occurrences;
+}
 
 
 // iCal 텍스트 디코딩
@@ -2723,42 +2625,49 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
-
+  const seenEvents = new Map(); // 중복 체크용
+  
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
-
-    if (activeCalendarIds.length > 0 && !activeCalendarIds.includes(calendar.id)) {
-      return;
-    }
-
+    if (activeCalendarIds.length > 0 && !activeCalendarIds.includes(calendar.id)) return;
+    
     const events = calendar.events.filter(event => {
-      // 문자열 비교로 변경하여 시간대 문제 방지
       return event.date === date.toISOString().split('T')[0];
     });
+    
     events.forEach(event => {
-      allEvents.push({
-        ...event,
-        color: calendar.color,
-        calendarName: calendar.name
-      });
+      // 반복 일정의 경우 recurringId로 중복 체크
+      const eventKey = event.recurringId || 
+                      `${event.uid || event.id}_${event.date}_${event.startTime}`;
+      
+      // 이미 있는 이벤트인지 체크
+      if (!seenEvents.has(eventKey)) {
+        seenEvents.set(eventKey, true);
+        allEvents.push({
+          ...event,
+          color: calendar.color,
+          calendarName: calendar.name
+        });
+      } else {
+        // 수정된 버전이면 교체
+        if (event.isModified) {
+          const index = allEvents.findIndex(e => 
+            (e.recurringId === eventKey) || 
+            (`${e.uid || e.id}_${e.date}_${e.startTime}` === eventKey)
+          );
+          if (index >= 0) {
+            allEvents[index] = {
+              ...event,
+              color: calendar.color,
+              calendarName: calendar.name
+            };
+          }
+        }
+      }
     });
   });
   
   return allEvents;
-
-    // 함수 마지막에 추가
-  const uniqueEvents = [];
-  const seenEvents = new Set();
-
-  allEvents.forEach(event => {
-      const key = `${event.title}_${event.date}_${event.startTime}_${event.endTime}`;
-      if (!seenEvents.has(key)) {
-          seenEvents.add(key);
-          uniqueEvents.push(event);
-      }
-  });
-
-  return uniqueEvents;
 }
 
 
