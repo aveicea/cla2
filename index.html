@@ -1041,27 +1041,31 @@ function clearDebugLog() {
   }
 }
 
-// 초기화
-
+//초기화
 function init() {
-loadFromStorage();
-
-// currentDate가 없으면 오늘로 설정 (6시 기준)
-if (!currentDate) {
-  currentDate = new Date();
-  const hour = currentDate.getHours();
+  loadFromStorage();
+  
+  // currentDate가 없으면 오늘로 설정 (6시 기준)
+  if (!currentDate) {
+    currentDate = new Date();
+  }
+  
+  // 현재 시간이 0-6시면 전날로 조정
+  const now = new Date();
+  const hour = now.getHours();
   if (hour < 6) {
     currentDate.setDate(currentDate.getDate() - 1);
   }
-}
-
+  
   updateCurrentDateDisplay();
   setAccentColor(accentColor);
   updateCalendarList();
   renderCalendar();
+  
   addDebugLog('샘플 캘린더가 추가되었습니다.');
   addDebugLog('캘린더 뷰어가 시작되었습니다.');
-  // init() 함수 끝에 추가
+  
+  // 자동 새로고침
   setInterval(async () => {
     for (const calendar of calendars) {
       if (calendar.type !== 'sample' && calendar.visible) {
@@ -1077,7 +1081,7 @@ if (!currentDate) {
         }
       }
     }
-  }, 120000); // 2분마다 체크
+  }, 120000);
 }
 
 // 설정 패널
