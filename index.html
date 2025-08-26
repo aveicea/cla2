@@ -1042,8 +1042,19 @@ function clearDebugLog() {
 }
 
 // 초기화
+
 function init() {
-  loadFromStorage();
+loadFromStorage();
+
+// currentDate가 없으면 오늘로 설정 (6시 기준)
+if (!currentDate) {
+  currentDate = new Date();
+  const hour = currentDate.getHours();
+  if (hour < 6) {
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+}
+
   updateCurrentDateDisplay();
   setAccentColor(accentColor);
   updateCalendarList();
@@ -1101,6 +1112,14 @@ function setView(viewMode) {
 
 // 날짜 네비게이션
 function navigateCalendar(direction) {
+  const now = new Date();
+  const hour = now.getHours();
+  
+  // 0-6시면 전날로 간주
+  if (hour < 6) {
+    now.setDate(now.getDate() - 1);
+  }
+  
   if (currentView === 'month') {
     currentDate.setMonth(currentDate.getMonth() + direction);
   } else if (currentView === 'week') {
@@ -1108,12 +1127,19 @@ function navigateCalendar(direction) {
   } else if (currentView === 'day') {
     currentDate.setDate(currentDate.getDate() + direction);
   }
+  
   updateCurrentDateDisplay();
   renderCalendar();
 }
 
 function goToToday() {
   currentDate = new Date();
+  const hour = currentDate.getHours();
+  
+  // 0-6시면 전날로 설정
+  if (hour < 6) {
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
   updateCurrentDateDisplay();
   renderCalendar();
 }
@@ -2667,53 +2693,44 @@ function getEventMinute(timeString) {
 function getAllEventsForDate(date) {
   const allEvents = [];
   const activeCalendarIds = viewCalendarSettings[currentView];
-  const seenEvents = new Map();
-  
-  // 오늘 날짜와 내일 날짜 문자열
-  const todayStr = date.toISOString().split('T')[0];
-  const tomorrow = new Date(date);
-  tomorrow.setDate(date.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const seenEvents = new Map(); // 중복 체크용
   
   calendars.forEach(calendar => {
     if (!calendar.visible || !calendar.events) return;
     if (activeCalendarIds.length > 0 && !activeCalendarIds.includes(calendar.id)) return;
     
     const events = calendar.events.filter(event => {
-      // 오늘 날짜 이벤트
-      if (event.date === todayStr) return true;
-      
-      // 내일 날짜의 0-6시 이벤트도 포함
-      if (event.date === tomorrowStr) {
-        const hour = getEventHour(event.startTime);
-        if (hour >= 0 && hour < 6) return true;
-      }
-      
-      return false;
+      return event.date === date.toISOString().split('T')[0];
     });
     
     events.forEach(event => {
+      // 반복 일정의 경우 recurringId로 중복 체크
       const eventKey = event.recurringId || 
                       `${event.uid || event.id}_${event.date}_${event.startTime}`;
       
+      // 이미 있는 이벤트인지 체크
       if (!seenEvents.has(eventKey)) {
         seenEvents.set(eventKey, true);
-        
-        // 내일 0-6시 이벤트는 표시할 때 조정
-        let adjustedEvent = {...event};
-        if (event.date === tomorrowStr) {
-          const hour = getEventHour(event.startTime);
-          if (hour >= 0 && hour < 6) {
-            // 날짜는 오늘로 표시하되, 시간은 그대로
-            adjustedEvent.displayAsLateNight = true;
-          }
-        }
-        
         allEvents.push({
-          ...adjustedEvent,
+          ...event,
           color: calendar.color,
           calendarName: calendar.name
         });
+      } else {
+        // 수정된 버전이면 교체
+        if (event.isModified) {
+          const index = allEvents.findIndex(e => 
+            (e.recurringId === eventKey) || 
+            (`${e.uid || e.id}_${e.date}_${e.startTime}` === eventKey)
+          );
+          if (index >= 0) {
+            allEvents[index] = {
+              ...event,
+              color: calendar.color,
+              calendarName: calendar.name
+            };
+          }
+        }
       }
     });
   });
