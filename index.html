@@ -2523,12 +2523,23 @@ function renderDayView() {
 
   const dayHeader = document.createElement('div');
   dayHeader.className = 'week-header';
+  
+  // 0-6시 조정 추가
+  const displayDate = new Date(currentDate);
+  const hour = new Date().getHours();
   const today = new Date();
-  if (currentDate.toDateString() === today.toDateString()) {
-    dayHeader.style.backgroundColor = accentColor;  // 기존: '#e3f2fd'
+  
+  // 0-6시이고 오늘을 보고 있다면 날짜 표시 조정
+  if (hour < 6 && currentDate.toDateString() === today.toDateString()) {
+    displayDate.setDate(displayDate.getDate() + 1);
+  }
+  
+  if (displayDate.toDateString() === today.toDateString()) {
+    dayHeader.style.backgroundColor = accentColor;
   } else {
     dayHeader.style.backgroundColor = '#f5f5f5';
   }
+  
   const options = { month: 'short', day: 'numeric', weekday: 'short' };
   const dayName = document.createElement('div');
   dayName.textContent = currentDate.toLocaleDateString('ko-KR', options);
