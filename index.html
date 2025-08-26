@@ -1041,31 +1041,30 @@ function clearDebugLog() {
   }
 }
 
-//초기화
+// 초기화
 function init() {
   loadFromStorage();
   
-  // currentDate가 없으면 오늘로 설정 (6시 기준)
+  // 저장된 날짜가 없으면 현재 날짜 설정
   if (!currentDate) {
-    currentDate = new Date();
-  }
-  
-  // 현재 시간이 0-6시면 전날로 조정
-  const now = new Date();
-  const hour = now.getHours();
-  if (hour < 6) {
-    currentDate.setDate(currentDate.getDate() - 1);
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour < 6) {
+      currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      currentDate = new Date();
+    }
   }
   
   updateCurrentDateDisplay();
   setAccentColor(accentColor);
   updateCalendarList();
   renderCalendar();
-  
   addDebugLog('샘플 캘린더가 추가되었습니다.');
   addDebugLog('캘린더 뷰어가 시작되었습니다.');
-  
-  // 자동 새로고침
+  // init() 함수 끝에 추가
   setInterval(async () => {
     for (const calendar of calendars) {
       if (calendar.type !== 'sample' && calendar.visible) {
@@ -1081,7 +1080,7 @@ function init() {
         }
       }
     }
-  }, 120000);
+  }, 120000); // 2분마다 체크
 }
 
 // 설정 패널
@@ -1116,10 +1115,6 @@ function setView(viewMode) {
 
 // 날짜 네비게이션
 function navigateCalendar(direction) {
-  // 이동 전에 현재 실제 시간 체크
-  const realNow = new Date();
-  const realHour = realNow.getHours();
-  
   if (currentView === 'month') {
     currentDate.setMonth(currentDate.getMonth() + direction);
   } else if (currentView === 'week') {
@@ -1127,30 +1122,22 @@ function navigateCalendar(direction) {
   } else if (currentView === 'day') {
     currentDate.setDate(currentDate.getDate() + direction);
   }
-  
-  // 오늘 날짜와 비교해서 오늘이면 6시 기준 적용
-  const today = new Date();
-  if (realHour < 6) {
-    today.setDate(today.getDate() - 1);
-  }
-  
-  // currentDate가 오늘이면 조정 적용
-  if (currentDate.toDateString() === today.toDateString() && realHour < 6) {
-    // 이미 조정됨
-  }
-  
   updateCurrentDateDisplay();
   renderCalendar();
 }
 
 function goToToday() {
-  currentDate = new Date();
-  const hour = currentDate.getHours();
+  const now = new Date();
+  const hour = now.getHours();
   
-  // 0-6시면 전날로 설정
+  // 0-6시면 표시상 "오늘"을 어제로
   if (hour < 6) {
+    currentDate = new Date();
     currentDate.setDate(currentDate.getDate() - 1);
+  } else {
+    currentDate = new Date();
   }
+  
   updateCurrentDateDisplay();
   renderCalendar();
 }
