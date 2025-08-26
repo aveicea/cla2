@@ -1415,6 +1415,10 @@ function parseIcalData(icalText) {
     } 
     else if (line === 'END:VEVENT' && currentEvent) {
       if (currentEvent.summary && currentEvent.dtstart) {
+    // 종일 이벤트 디버그
+    if (currentEvent.isAllDay) {
+      addDebugLog(`종일 이벤트 저장: ${currentEvent.summary}, 날짜: ${currentEvent.date}`);
+    }
         const baseEvent = {
           id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
           uid: currentEvent.uid,
@@ -1430,7 +1434,8 @@ function parseIcalData(icalText) {
           exdate: currentEvent.exdate || [],
           rrule: currentEvent.rrule,
           recurrenceId: currentEvent.recurrenceId,
-          isException: currentEvent.isException
+          isException: currentEvent.isException,
+          isAllDay: currentEvent.isAllDay || false
         };
         
         // 수정된 인스턴스인 경우
@@ -1548,7 +1553,7 @@ function parseIcalData(icalText) {
 
 //반복일정확장함수
 function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
-    addDebugLog(`반복 일정 확장: ${event.title}, UID: ${event.uid}`);
+  addDebugLog(`반복 일정 확장: ${event.title}, 종일여부: ${event.isAllDay}, 시작날짜: ${event.date}`);
     
     if (!event.uid) {
         event.uid = event.id;
