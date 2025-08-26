@@ -1476,7 +1476,10 @@ function parseIcalData(icalText) {
                 currentEvent.time = startDate.time;
                 currentEvent.startTime = startDate.time;
                 currentEvent.isAllDay = isDateOnly || startDate.time === '종일';  // 플래그 추가
-              }
+                if (currentEvent.isAllDay) {
+      addDebugLog(`종일 이벤트 발견: ${currentEvent.summary}, 날짜: ${currentEvent.date}, VALUE=DATE: ${isDateOnly}`);
+    }
+  }
               break;
           case 'DTEND':
             const endDate = parseIcalDate(value);
@@ -1624,8 +1627,14 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         if (current >= viewStart) {
             const eventDateStr = current.toISOString().split('T')[0];
             const exceptionKey = `${event.uid}_${eventDateStr}`;
-            
+              
+            // 반복 일정 확장 시작 부분
+            addDebugLog(`반복 일정 확장: ${event.title}, 종일: ${event.isAllDay}, 원본날짜: ${event.date}`);
+
             if (!excludedDates.has(eventDateStr)) {
+              if (event.isAllDay) {
+                    addDebugLog(`종일 반복 인스턴스 생성: ${eventDateStr}`);
+                }
                 // 예외 이벤트 확인
                 if (exceptionalEvents && exceptionalEvents.has(exceptionKey)) {
                     const modifiedEvent = exceptionalEvents.get(exceptionKey);
