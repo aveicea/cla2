@@ -1116,13 +1116,9 @@ function setView(viewMode) {
 
 // 날짜 네비게이션
 function navigateCalendar(direction) {
-  const now = new Date();
-  const hour = now.getHours();
-  
-  // 0-6시면 전날로 간주
-  if (hour < 6) {
-    now.setDate(now.getDate() - 1);
-  }
+  // 이동 전에 현재 실제 시간 체크
+  const realNow = new Date();
+  const realHour = realNow.getHours();
   
   if (currentView === 'month') {
     currentDate.setMonth(currentDate.getMonth() + direction);
@@ -1130,6 +1126,17 @@ function navigateCalendar(direction) {
     currentDate.setDate(currentDate.getDate() + (direction * 7));
   } else if (currentView === 'day') {
     currentDate.setDate(currentDate.getDate() + direction);
+  }
+  
+  // 오늘 날짜와 비교해서 오늘이면 6시 기준 적용
+  const today = new Date();
+  if (realHour < 6) {
+    today.setDate(today.getDate() - 1);
+  }
+  
+  // currentDate가 오늘이면 조정 적용
+  if (currentDate.toDateString() === today.toDateString() && realHour < 6) {
+    // 이미 조정됨
   }
   
   updateCurrentDateDisplay();
