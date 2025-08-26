@@ -1415,10 +1415,6 @@ function parseIcalData(icalText) {
     } 
     else if (line === 'END:VEVENT' && currentEvent) {
       if (currentEvent.summary && currentEvent.dtstart) {
-    // 종일 이벤트 디버그
-    if (currentEvent.isAllDay) {
-      addDebugLog(`종일 이벤트 저장: ${currentEvent.summary}, 날짜: ${currentEvent.date}`);
-    }
         const baseEvent = {
           id: currentEvent.uid || `event_${Date.now()}_${Math.random()}`,
           uid: currentEvent.uid,
@@ -1434,8 +1430,7 @@ function parseIcalData(icalText) {
           exdate: currentEvent.exdate || [],
           rrule: currentEvent.rrule,
           recurrenceId: currentEvent.recurrenceId,
-          isException: currentEvent.isException,
-          isAllDay: currentEvent.isAllDay || false
+          isException: currentEvent.isException
         };
         
         // 수정된 인스턴스인 경우
@@ -1472,20 +1467,15 @@ function parseIcalData(icalText) {
           case 'DESCRIPTION':
             currentEvent.description = decodeIcalText(value);
             break;
-            case 'DTSTART':
-              const isDateOnly = line.includes('VALUE=DATE');
-              const startDate = parseIcalDate(value);
-              if (startDate) {
-                currentEvent.dtstart = startDate.date;
-                currentEvent.date = startDate.date;
-                currentEvent.time = startDate.time;
-                currentEvent.startTime = startDate.time;
-                currentEvent.isAllDay = isDateOnly || startDate.time === '종일';  // 플래그 추가
-                if (currentEvent.isAllDay) {
-      addDebugLog(`종일 이벤트 발견: ${currentEvent.summary}, 날짜: ${currentEvent.date}, VALUE=DATE: ${isDateOnly}`);
-    }
-  }
-              break;
+          case 'DTSTART':
+            const startDate = parseIcalDate(value);
+            if (startDate) {
+              currentEvent.dtstart = startDate.date;
+              currentEvent.date = startDate.date;
+              currentEvent.time = startDate.time;
+              currentEvent.startTime = startDate.time;
+            }
+            break;
           case 'DTEND':
             const endDate = parseIcalDate(value);
             if (endDate) {
@@ -1553,13 +1543,13 @@ function parseIcalData(icalText) {
 
 //반복일정확장함수
 function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exceptionalEvents) {
-  addDebugLog(`반복 일정 확장: ${event.title}, 종일여부: ${event.isAllDay}, 시작날짜: ${event.date}`);
+    addDebugLog(`반복 일정 확장: ${event.title}, UID: ${event.uid}`);
     
     if (!event.uid) {
         event.uid = event.id;
     }
     
-    // 이 부분을 교체
+    const occurrences = [];
     let eventStart;
     if (event.isAllDay) {
         // 종일 이벤트는 로컬 날짜로 정확히 생성
@@ -1626,39 +1616,23 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
                 current.setDate(current.getDate() + (7 * (parseInt(rules.INTERVAL) || 1)));
                 break;
             case 'MONTHLY':
-                const originalDay = current.getDate();
-                if (rules.BYMONTHDAY) {
-                    const targetDay = parseInt(rules.BYMONTHDAY);
-                    current.setDate(targetDay);
-                }
                 current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
-                
-                // 월이 바뀌면서 날짜가 변경된 경우 (예: 31일 → 다음달 1일) 조정
-                if (rules.BYMONTHDAY && current.getDate() !== parseInt(rules.BYMONTHDAY)) {
-                    current.setDate(0); // 이전 달 마지막 날로
-                }
                 break;
-                        case 'YEARLY':
-                            current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
-                            break;
-                        default:
-                            return occurrences;
-                    }
-                }
+            case 'YEARLY':
+                current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
+                break;
+            default:
+                return occurrences;
+        }
+    }
     
     // 뷰 범위 내 이벤트 생성
     while (current <= effectiveEndDate && viewCount < 100) {
         if (current >= viewStart) {
             const eventDateStr = current.toISOString().split('T')[0];
             const exceptionKey = `${event.uid}_${eventDateStr}`;
-              
-            // 반복 일정 확장 시작 부분
-            addDebugLog(`반복 일정 확장: ${event.title}, 종일: ${event.isAllDay}, 원본날짜: ${event.date}`);
-
+            
             if (!excludedDates.has(eventDateStr)) {
-              if (event.isAllDay) {
-                    addDebugLog(`종일 반복 인스턴스 생성: ${eventDateStr}`);
-                }
                 // 예외 이벤트 확인
                 if (exceptionalEvents && exceptionalEvents.has(exceptionKey)) {
                     const modifiedEvent = exceptionalEvents.get(exceptionKey);
@@ -1673,7 +1647,6 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
                         ...event,
                         id: `${event.uid}_${current.getTime()}`,
                         date: eventDateStr,
-                        isAllDay: event.isAllDay,
                         isRecurring: true,
                         originalUid: event.uid
                     });
@@ -1726,17 +1699,7 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
                 }
                 break;
             case 'MONTHLY':
-                const originalDay = current.getDate();
-                if (rules.BYMONTHDAY) {
-                    const targetDay = parseInt(rules.BYMONTHDAY);
-                    current.setDate(targetDay);
-                }
                 current.setMonth(current.getMonth() + (parseInt(rules.INTERVAL) || 1));
-                
-                // 월이 바뀌면서 날짜가 변경된 경우 (예: 31일 → 다음달 1일) 조정
-                if (rules.BYMONTHDAY && current.getDate() !== parseInt(rules.BYMONTHDAY)) {
-                    current.setDate(0); // 이전 달 마지막 날로
-                }
                 break;
             case 'YEARLY':
                 current.setFullYear(current.getFullYear() + (parseInt(rules.INTERVAL) || 1));
