@@ -2194,7 +2194,14 @@ function splitCrossDayEvent(event) {
 // 주간 뷰 렌더링 (24시간 버전)
 function renderWeekView() {
   const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  const hour = new Date().getHours();
+  
+  // 0-6시면 주간 뷰 시작일 조정
+  if (hour < 6) {
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1);
+  } else {
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  }
 
   const container = document.createElement('div');
   container.style.padding = '20px';
