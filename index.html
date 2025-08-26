@@ -1467,15 +1467,17 @@ function parseIcalData(icalText) {
           case 'DESCRIPTION':
             currentEvent.description = decodeIcalText(value);
             break;
-          case 'DTSTART':
-            const startDate = parseIcalDate(value);
-            if (startDate) {
-              currentEvent.dtstart = startDate.date;
-              currentEvent.date = startDate.date;
-              currentEvent.time = startDate.time;
-              currentEvent.startTime = startDate.time;
-            }
-            break;
+            case 'DTSTART':
+              const isDateOnly = line.includes('VALUE=DATE');
+              const startDate = parseIcalDate(value);
+              if (startDate) {
+                currentEvent.dtstart = startDate.date;
+                currentEvent.date = startDate.date;
+                currentEvent.time = startDate.time;
+                currentEvent.startTime = startDate.time;
+                currentEvent.isAllDay = isDateOnly || startDate.time === '종일';  // 플래그 추가
+              }
+              break;
           case 'DTEND':
             const endDate = parseIcalDate(value);
             if (endDate) {
@@ -1638,6 +1640,7 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
                         ...event,
                         id: `${event.uid}_${current.getTime()}`,
                         date: eventDateStr,
+                        isAllDay: event.isAllDay,
                         isRecurring: true,
                         originalUid: event.uid
                     });
