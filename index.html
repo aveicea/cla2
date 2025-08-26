@@ -1044,25 +1044,10 @@ function clearDebugLog() {
 // 초기화
 function init() {
   loadFromStorage();
-  
-  // 저장된 날짜가 없으면 현재 날짜 설정
-  if (!currentDate) {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    if (hour < 6) {
-      currentDate = new Date();
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else {
-      currentDate = new Date();
-    }
-  }
-  
   updateCurrentDateDisplay();
   setAccentColor(accentColor);
   updateCalendarList();
   renderCalendar();
-  addDebugLog('샘플 캘린더가 추가되었습니다.');
   addDebugLog('캘린더 뷰어가 시작되었습니다.');
   // init() 함수 끝에 추가
   setInterval(async () => {
@@ -1127,17 +1112,7 @@ function navigateCalendar(direction) {
 }
 
 function goToToday() {
-  const now = new Date();
-  const hour = now.getHours();
-  
-  // 0-6시면 표시상 "오늘"을 어제로
-  if (hour < 6) {
-    currentDate = new Date();
-    currentDate.setDate(currentDate.getDate() - 1);
-  } else {
-    currentDate = new Date();
-  }
-  
+  currentDate = new Date();
   updateCurrentDateDisplay();
   renderCalendar();
 }
@@ -2539,7 +2514,7 @@ function renderDayView() {
   } else {
     dayHeader.style.backgroundColor = '#f5f5f5';
   }
-  
+
   const options = { month: 'short', day: 'numeric', weekday: 'short' };
   const dayName = document.createElement('div');
   dayName.textContent = currentDate.toLocaleDateString('ko-KR', options);
