@@ -1735,7 +1735,7 @@ function parseIcalDate(dateString, isDateOnly = false) {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
       return {
-        date: dateStr,
+        date: `${year}-${month}-${day}`, 
         time: '종일',
         isAllDay: true
       };
