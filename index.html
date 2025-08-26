@@ -1559,8 +1559,17 @@ function expandRecurringEventWithExceptions(event, viewStart, viewEnd, exception
         event.uid = event.id;
     }
     
-    const occurrences = [];
-    const eventStart = new Date(event.start || event.date + 'T00:00:00');
+    // 이 부분을 교체
+    let eventStart;
+    if (event.isAllDay) {
+        // 종일 이벤트는 로컬 날짜로 정확히 생성
+        const [year, month, day] = event.date.split('-').map(n => parseInt(n));
+        eventStart = new Date(year, month - 1, day, 0, 0, 0);
+    } else {
+        // 시간이 있는 이벤트는 기존 방식
+        eventStart = new Date(event.start || event.date + 'T00:00:00');
+    }
+    
     const eventEnd = new Date(event.end || event.date + 'T23:59:59');
     const eventDuration = eventEnd - eventStart;
     
