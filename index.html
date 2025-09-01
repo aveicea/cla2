@@ -1,4 +1,4 @@
-// <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -726,146 +726,140 @@
 </style>
 </head>
 <body>
-<div class="header">
-  <div class="view-selector">
-    <button class="view-btn active" onclick="setView('day')" id="dayBtn">일</button>
-    <button class="view-btn" onclick="setView('week')" id="weekBtn">주</button>
-    <button class="view-btn" onclick="setView('month')" id="monthBtn">월</button>
+  <div class="header">
+    <div class="view-selector">
+      <button class="view-btn active" onclick="setView('day')" id="dayBtn">일</button>
+      <button class="view-btn" onclick="setView('week')" id="weekBtn">주</button>
+      <button class="view-btn" onclick="setView('month')" id="monthBtn">월</button>
+    </div>
+    
+    <div class="nav-controls">
+      <button class="nav-btn" onclick="navigateCalendar(-1)">‹</button>
+      <div class="current-date" id="currentDate"></div>
+      <button class="nav-btn" onclick="navigateCalendar(1)">›</button>
+      <button class="nav-btn" onclick="goToToday()">📅</button>
+    </div>
+    
+    <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+    
+    <div class="settings-panel" id="settingsPanel">
+      <div class="settings-title">멀티 캘린더 설정</div>
+  
+  <!-- 뷰별 캘린더 선택 -->
+  <div class="view-calendar-section">
+    <div class="toggle-header" onclick="toggleSection('viewCalendarSettings', 'viewToggleIcon')">
+      <div class="color-picker-title">뷰별 캘린더 선택</div>
+      <div class="toggle-icon" id="viewToggleIcon">▼</div>
+    </div>
+    <div class="toggle-content" id="viewCalendarSettings">
+      <!-- 동적으로 생성됨 -->
+    </div>
   </div>
   
-  <div class="nav-controls">
-    <button class="nav-btn" onclick="navigateCalendar(-1)">‹</button>
-    <div class="current-date" id="currentDate"></div>
-    <button class="nav-btn" onclick="navigateCalendar(1)">›</button>
-    <button class="nav-btn" onclick="goToToday()">📅</button>
+  <!-- 테마 색상 -->
+  <div class="color-picker-group">
+    <div class="toggle-header" onclick="toggleSection('themeColorContent', 'themeToggleIcon')">
+      <div class="color-picker-title">테마 색상</div>
+      <div class="toggle-icon" id="themeToggleIcon">▼</div>
+    </div>
+    <div class="toggle-content" id="themeColorContent">
+      <div class="color-input-row">
+        <input type="color" class="color-picker-input" id="colorPicker" onchange="updateColorFromPicker()">
+        <input type="text" class="color-text-input" id="colorText" placeholder="#D1D1D1" oninput="updateColorFromText()" maxlength="7">
+      </div>
+      <div class="preset-colors">
+        <div class="preset-color" style="background-color: #4285f4;" onclick="setPresetColor('#4285f4')"></div>
+        <div class="preset-color" style="background-color: #34a853;" onclick="setPresetColor('#34a853')"></div>
+        <div class="preset-color" style="background-color: #ea4335;" onclick="setPresetColor('#ea4335')"></div>
+        <div class="preset-color" style="background-color: #ffc107;" onclick="setPresetColor('#ffc107')"></div>
+        <div class="preset-color" style="background-color: #9c27b0;" onclick="setPresetColor('#9c27b0')"></div>
+        <div class="preset-color" style="background-color: #607d8b;" onclick="setPresetColor('#607d8b')"></div>
+      </div>
+    </div>
   </div>
   
-  <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+  <!-- 연동된 캘린더 목록 -->
+  <div class="calendar-list-section">
+    <div class="toggle-header" onclick="toggleSection('calendarListContent', 'listToggleIcon')">
+      <div class="color-picker-title">연동된 캘린더 목록</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="nav-btn" onclick="refreshAllCalendars()" title="모든 캘린더 새로고침">🔄</button>
+        <div class="toggle-icon" id="listToggleIcon">▼</div>
+      </div>
+    </div>
+    <div class="toggle-content" id="calendarListContent">
+      <div id="calendarList">
+        <p style="color: #666; font-size: 12px; text-align: center; padding: 20px;">
+          연동된 캘린더가 없습니다.<br>아래에서 캘린더를 추가해보세요!
+        </p>
+      </div>
+    </div>
+  </div>
   
-  <div class="settings-panel" id="settingsPanel">
-    <div class="settings-title">멀티 캘린더 설정</div>
-
-    <!-- 뷰별 캘린더 선택 -->
-    <div class="view-calendar-section">
-      <div class="toggle-header" onclick="toggleSection('viewCalendarSettings', 'viewToggleIcon')">
-        <div class="color-picker-title">뷰별 캘린더 선택</div>
-        <div class="toggle-icon" id="viewToggleIcon">▼</div>
-      </div>
-      <div class="toggle-content" id="viewCalendarSettings">
-        <!-- 동적으로 생성됨 -->
-      </div>
+  <!-- 캘린더 추가 -->
+  <div class="add-calendar-section">
+    <div class="toggle-header" onclick="toggleSection('addCalendarContent', 'addToggleIcon')">
+      <div class="color-picker-title">캘린더 추가</div>
+      <div class="toggle-icon" id="addToggleIcon">▼</div>
     </div>
-
-    <!-- 테마 색상 -->
-    <div class="color-picker-group">
-      <div class="toggle-header" onclick="toggleSection('themeColorContent', 'themeToggleIcon')">
-        <div class="color-picker-title">테마 색상</div>
-        <div class="toggle-icon" id="themeToggleIcon">▼</div>
+    <div class="toggle-content" id="addCalendarContent">
+      <div class="input-group">
+        <label>캘린더 유형</label>
+        <select id="calendarType" onchange="updateCalendarInputs()">
+          <option value="ical">iCal 링크 (.ics)</option>
+          <option value="googlePublic">구글 캘린더 공개 링크</option>
+          <option value="api">구글 캘린더 API</option>
+        </select>
       </div>
-      <div class="toggle-content" id="themeColorContent">
-        <div class="color-input-row">
-          <input type="color" class="color-picker-input" id="colorPicker" onchange="updateColorFromPicker()">
-          <input type="text" class="color-text-input" id="colorText" placeholder="#4285f4" oninput="updateColorFromText()" maxlength="7">
-        </div>
-        <div class="preset-colors">
-          <div class="preset-color" style="background-color: #4285f4;" onclick="setPresetColor('#4285f4')"></div>
-          <div class="preset-color" style="background-color: #34a853;" onclick="setPresetColor('#34a853')"></div>
-          <div class="preset-color" style="background-color: #ea4335;" onclick="setPresetColor('#ea4335')"></div>
-          <div class="preset-color" style="background-color: #ffc107;" onclick="setPresetColor('#ffc107')"></div>
-          <div class="preset-color" style="background-color: #9c27b0;" onclick="setPresetColor('#9c27b0')"></div>
-          <div class="preset-color" style="background-color: #607d8b;" onclick="setPresetColor('#607d8b')"></div>
-        </div>
+      
+      <div class="input-group">
+        <label>캘린더 이름</label>
+        <input type="text" id="calendarName" placeholder="예: 개인 일정, 업무 캘린더">
       </div>
-    </div>
-
-    <!-- 연동된 캘린더 목록 -->
-    <div class="calendar-list-section">
-      <div class="toggle-header" onclick="toggleSection('calendarListContent', 'listToggleIcon')">
-        <div class="color-picker-title">연동된 캘린더 목록</div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <button class="nav-btn" onclick="refreshAllCalendars()" title="모든 캘린더 새로고침">🔄</button>
-          <div class="toggle-icon" id="listToggleIcon">▼</div>
-        </div>
+      
+      <div class="input-group">
+        <label>캘린더 색상</label>
+        <input type="color" id="calendarColor" value="#D1D1D1">
       </div>
-      <div class="toggle-content" id="calendarListContent">
-        <div id="calendarList">
-          <p style="color: #666; font-size: 12px; text-align: center; padding: 20px;">
-            연동된 캘린더가 없습니다.<br>아래에서 캘린더를 추가해보세요!
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 캘린더 추가 -->
-    <div class="add-calendar-section">
-      <div class="toggle-header" onclick="toggleSection('addCalendarContent', 'addToggleIcon')">
-        <div class="color-picker-title">캘린더 추가</div>
-        <div class="toggle-icon" id="addToggleIcon">▼</div>
-      </div>
-      <div class="toggle-content" id="addCalendarContent">
+      
+      <div id="icalInputs" class="calendar-inputs active">
         <div class="input-group">
-          <label>캘린더 유형</label>
-          <select id="calendarType" onchange="updateCalendarInputs()">
-            <option value="ical">iCal 링크 (.ics)</option>
-            <option value="googlePublic">구글 캘린더 공개 링크</option>
-            <option value="api">구글 캘린더 API</option>
-          </select>
-        </div>
-        
-        <div class="input-group">
-          <label>캘린더 이름</label>
-          <input type="text" id="calendarName" placeholder="예: 개인 일정, 업무 캘린더">
-        </div>
-        
-        <div class="input-group">
-          <label>캘린더 색상</label>
-          <input type="color" id="calendarColor" value="#4285f4">
-        </div>
-        
-        <div id="icalInputs" class="calendar-inputs active">
-          <div class="input-group">
-            <label>iCal 링크</label>
-            <textarea id="icalUrl" rows="3" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"></textarea>
-            <div class="help-text">
-              구글 캘린더 설정 → 통합 및 공유 → 비공개 주소의 iCal 링크를 복사하세요.
-            </div>
+          <label>iCal 링크</label>
+          <textarea id="icalUrl" rows="3" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"></textarea>
+          <div class="help-text">
+            구글 캘린더 설정 → 통합 및 공유 → 비공개 주소의 iCal 링크를 복사하세요.
           </div>
         </div>
-        
-        <div id="googlePublicInputs" class="calendar-inputs">
-          <div class="input-group">
-            <label>구글 캘린더 ID</label>
-            <input type="text" id="googleCalendarId" placeholder="캘린더ID@group.calendar.google.com">
-            <div class="help-text">
-              공개된 구글 캘린더의 캘린더 ID를 입력하세요.<br>
-              예: ko.south_korea#holiday@group.v.calendar.google.com (한국 공휴일)
-            </div>
-          </div>
-        </div>
-        
-        <div id="apiInputs" class="calendar-inputs">
-          <div class="input-group">
-            <label>API 키</label>
-            <input type="text" id="apiKey" placeholder="Google Calendar API 키">
-          </div>
-          <div class="input-group">
-            <label>캘린더 ID</label>
-            <input type="text" id="calendarId" placeholder="primary 또는 이메일@gmail.com">
-          </div>
-        </div>
-        
-        <button class="btn btn-primary" onclick="addCalendar()">캘린더 추가</button>
-        <button class="btn btn-secondary" onclick="addSampleCalendar()">샘플 캘린더 추가</button>
-        <button class="btn btn-secondary" onclick="addKoreanHolidays()">한국 공휴일 추가</button>
       </div>
+      
+      <div id="googlePublicInputs" class="calendar-inputs">
+        <div class="input-group">
+          <label>구글 캘린더 ID</label>
+          <input type="text" id="googleCalendarId" placeholder="캘린더ID@group.calendar.google.com">
+          <div class="help-text">
+            공개된 구글 캘린더의 캘린더 ID를 입력하세요.<br>
+            예: ko.south_korea#holiday@group.v.calendar.google.com (한국 공휴일)
+          </div>
+        </div>
+      </div>
+      
+      <div id="apiInputs" class="calendar-inputs">
+        <div class="input-group">
+          <label>API 키</label>
+          <input type="text" id="apiKey" placeholder="Google Calendar API 키">
+        </div>
+        <div class="input-group">
+          <label>캘린더 ID</label>
+          <input type="text" id="calendarId" placeholder="primary 또는 이메일@gmail.com">
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="addCalendar()">캘린더 추가</button>
     </div>
-
-    <div class="backup-section">
-      <div class="toggle-header" onclick="toggleSection('backupContent', 'backupToggleIcon')">
+  </div>
+  
+      <div class="backup-section">
         <div class="color-picker-title">설정 백업/복원</div>
-        <div class="toggle-icon" id="backupToggleIcon">▼</div>
-      </div>
-      <div class="toggle-content" id="backupContent">
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
           <button class="btn btn-primary" onclick="exportCalendarSettings()">설정 내려받기</button>
           <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">설정 가져오기</button>
@@ -875,45 +869,20 @@
           캘린더 연동 정보, 색상, 뷰 설정 등을 백업하고 복원할 수 있습니다.
         </div>
       </div>
-    </div>
-    
-    <div class="debug-section">
-      <div class="toggle-header" onclick="toggleSection('debugContent', 'debugToggleIcon')">
+      
+      <div class="debug-section">
         <div class="color-picker-title">디버그 정보</div>
-        <div class="toggle-icon" id="debugToggleIcon">▼</div>
-      </div>
-      <div class="toggle-content" id="debugContent">
         <button class="btn btn-secondary" onclick="clearDebugLog()">로그 지우기</button>
         <div id="debugLog" class="debug-log"></div>
       </div>
     </div>
   </div>
-</div>
-
-<div class="overlay" id="overlay" onclick="closeSettings()"></div>
-
-<div class="calendar-container">
-  <div class="calendar-item ${calendar.visible ? 'active' : ''}" data-id="${calendar.id}">
-    <input type="color" value="${calendar.color}" 
-           onchange="updateCalendarColor('${calendar.id}', this.value)" 
-           class="calendar-color-picker" 
-           title="캘린더 색상 변경">
-    <div class="calendar-info">
-      <input class="calendar-name" value="${calendar.name}" 
-             onchange="updateCalendarName('${calendar.id}', this.value)"
-             onblur="updateCalendarName('${calendar.id}', this.value)">
-      <div class="calendar-url">${calendar.type === 'sample' ? '샘플 데이터' : 
-        (calendar.url || calendar.calendarId || '').substring(0, 30)}${(calendar.url || calendar.calendarId || '').length > 30 ? '...' : ''}</div>
-      <div class="calendar-status ${calendar.status}">${calendar.statusMessage || calendar.status}</div>
-    </div>
-    <div class="calendar-actions">
-      <button class="toggle-btn ${calendar.visible ? 'visible' : 'hidden'}" 
-              onclick="toggleCalendarVisibility('${calendar.id}')" 
-              title="${calendar.visible ? '숨기기' : '보이기'}">
-        ${calendar.visible ? '👁️' : '🚫'}
-      </button>
-      <button class="toggle-btn reload-btn" onclick="reloadCalendar('${calendar.id}')" title="새로고침">🔄</button>
-      <button class="toggle-btn remove-btn" onclick="removeCalendar('${calendar.id}')" title="삭제">✕</button>
+  
+  <div class="overlay" id="overlay" onclick="closeSettings()"></div>
+  
+  <div class="calendar-container">
+    <div class="calendar-content" id="calendarContent">
+      <div class="loading">캘린더를 불러오는 중...</div>
     </div>
   </div>
   
